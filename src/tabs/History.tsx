@@ -43,7 +43,7 @@ export default function History() {
 
   const exportCsv = async () => {
     if (!ledger.length) return toast('Nothing to export yet.', 'err')
-    const saved = await saveFile(`shiftodo-mileage-${v.model.replace(/\W+/g, '-').toLowerCase() || 'vehicle'}-${new Date().toLocaleDateString('en-CA')}.csv`, '﻿' + ledgerCsv(v, ledger, rate, unit, now), 'text/csv;charset=utf-8')
+    const saved = await saveFile(`waypoint-mileage-${v.model.replace(/\W+/g, '-').toLowerCase() || 'vehicle'}-${new Date().toLocaleDateString('en-CA')}.csv`, '﻿' + ledgerCsv(v, ledger, rate, unit, now), 'text/csv;charset=utf-8')
     if (saved) toast('Mileage log exported')
   }
 
@@ -544,7 +544,7 @@ function ReportBody({ vehicle, y, ledger, now }: { vehicle: Vehicle; y: YearSumm
       <header className="border-b-4 border-ink pb-3">
         <h1 className="text-2xl font-black">Vehicle Mileage Log &amp; Deduction Report</h1>
         <p className="text-sm font-bold text-ink-2">
-          Tax year {y.year} · Standard mileage rate method · Prepared with ShiftOdo on {fmtDateYear(now)}
+          Tax year {y.year} · Standard mileage rate method · Prepared with Waypoint on {fmtDateYear(now)}
         </p>
       </header>
 
@@ -685,7 +685,7 @@ function TaxReport({ open, onClose, vehicle, ledger, now }: { open: boolean; onC
               onClick={() => {
                 // Android WebView has no print dialog: share a standalone copy that any browser can print or save as PDF.
                 if (!isNative) return window.print()
-                const title = `ShiftOdo mileage report ${y.year} ${vehicle.model}`
+                const title = `Waypoint mileage report ${y.year} ${vehicle.model}`
                 void saveFile(`${title.replace(/\W+/g, '-').toLowerCase()}.html`, standaloneHtml(title, document.getElementById('print-root')!), 'text/html')
               }}
             >

@@ -59,7 +59,7 @@ export default function Onboarding() {
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pb-4 pt-5">
       <div className="mb-1 flex items-center gap-2 text-2xl font-black">
-        <span className="num rounded-lg bg-ink px-2 py-0.5 text-amber">00</span> Welcome to ShiftOdo
+        <span className="num rounded-lg bg-ink px-2 py-0.5 text-amber">00</span> Welcome to Waypoint
       </div>
       <p className="text-sm font-semibold text-ink-2">Three quick steps and every mile is accounted for.</p>
       <ol className="my-4 grid grid-cols-3 gap-2" aria-label="Setup progress">

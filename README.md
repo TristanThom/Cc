@@ -1,4 +1,4 @@
-# ShiftOdo
+# Waypoint
 
 A high-contrast, mobile-first PWA for rideshare and delivery drivers: continuous odometer
 tracking, IRS mileage write-offs, shifts, maintenance intervals, and income/expenses.
@@ -17,12 +17,13 @@ npm run preview  # serve the production build
 ## Android app
 
 The same code ships as a native Android app through Capacitor (`android/`, app id
-`com.shiftodo.app`). The web files are bundled inside the APK, so it runs with no server
+`com.waypoint.app`). The web files are bundled inside the APK, so it runs with no server
 and no network.
 
-- **Get an APK without any setup**: every push runs the "Android APK" GitHub Action;
-  download `ShiftOdo-debug-apk` from the run's Artifacts and install it on a phone
-  (allow "install unknown apps" when prompted).
+- **Get an APK without any setup**: every push runs the "Android APK" GitHub Action,
+  which publishes the newest build to the `latest-apk` release. On the phone, open
+  `https://github.com/TristanThom/Cc/releases/download/latest-apk/Waypoint.apk` and tap
+  the downloaded file (allow "install unknown apps" when prompted).
 - **Build locally** (needs Android Studio / Android SDK and JDK 21):
   `npm run android:apk`, or `npm run android:sync && npm run android:open` to run it
   from Android Studio.

@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # needed to publish the APK as a release asset
 
 jobs:
   apk:
@@ -29,6 +29,16 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: ShiftOdo-debug-apk
+          name: Waypoint-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      # Rolling release so the newest APK has a direct, phone-friendly download link.
+      - name: Publish APK to the latest-apk release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Waypoint.apk
+          gh release delete latest-apk --yes --cleanup-tag || true
+          gh release create latest-apk Waypoint.apk --prerelease --target "$GITHUB_SHA" \
+            --title "Waypoint Android (latest build)" \
+            --notes "Debug build of commit $GITHUB_SHA. Download Waypoint.apk on your phone and tap it to install."

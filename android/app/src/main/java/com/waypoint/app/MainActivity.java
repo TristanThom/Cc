@@ -1,4 +1,4 @@
-package com.shiftodo.app;
+package com.waypoint.app;
 
 import com.getcapacitor.BridgeActivity;
 

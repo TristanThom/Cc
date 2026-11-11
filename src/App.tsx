@@ -127,7 +127,7 @@ function Header({ tab, goTab, alertCount }: { tab: number; goTab: (i: number) =>
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
         <div className="flex items-center gap-2 text-xl font-black tracking-tight">
           <span className="num rounded-md bg-ink px-1.5 py-0.5 text-base text-amber">00</span>
-          ShiftOdo
+          Waypoint
         </div>
         <nav className="ml-4 hidden flex-1 gap-1 md:flex" aria-label="Sections">
           {TABS.map((t, i) => (

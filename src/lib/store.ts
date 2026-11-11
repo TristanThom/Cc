@@ -270,7 +270,7 @@ export const useStore = create<AppData & Actions>()(
       restore: (raw) => {
         const d = (raw as { data?: Partial<AppData> })?.data ?? (raw as Partial<AppData>)
         if (!d || typeof d !== 'object' || !Array.isArray(d.vehicles) || !Array.isArray(d.shifts)) {
-          return 'That file is not a ShiftOdo backup.'
+          return 'That file is not a Waypoint backup.'
         }
         const base = emptyData()
         const arr = <T,>(x: T[] | undefined, fallback: T[]) => (Array.isArray(x) ? x : fallback)
@@ -292,7 +292,7 @@ export const useStore = create<AppData & Actions>()(
       },
     }),
     {
-      name: 'shiftodo-v1',
+      name: 'waypoint-v1',
       version: 1,
       storage: createJSONStorage(() => safeStorage),
     },

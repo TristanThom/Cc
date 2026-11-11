@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'ShiftOdo — Gig Driver Mileage & Income',
-        short_name: 'ShiftOdo',
+        name: 'Waypoint — Gig Driver Mileage & Income',
+        short_name: 'Waypoint',
         description:
           'Continuous odometer, IRS mileage write-offs, shifts, maintenance and income tracking for rideshare and delivery drivers.',
         theme_color: '#0F172A',

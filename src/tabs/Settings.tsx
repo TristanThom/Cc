@@ -25,7 +25,7 @@ export default function Settings() {
   const showForm = (v: Vehicle | null) => (setForm((f) => ({ v, key: f.key + 1 })), setFormOpen(true))
 
   const exportBackup = async () => {
-    const saved = await saveFile(`shiftodo-backup-${new Date().toLocaleDateString('en-CA')}.json`, JSON.stringify({ app: 'ShiftOdo', version: 1, exportedAt: new Date().toISOString(), data: snapshot() }, null, 2), 'application/json')
+    const saved = await saveFile(`waypoint-backup-${new Date().toLocaleDateString('en-CA')}.json`, JSON.stringify({ app: 'Waypoint', version: 1, exportedAt: new Date().toISOString(), data: snapshot() }, null, 2), 'application/json')
     if (saved) toast(isNative ? 'Backup ready' : 'Backup downloaded')
   }
   const onFile = async (f?: File) => {
@@ -153,7 +153,7 @@ export default function Settings() {
           </label>
           {install.state !== 'installed' && (
             <Btn className="w-full" onClick={install.prompt}>
-              <Smartphone size={18} strokeWidth={2.5} /> Install ShiftOdo app
+              <Smartphone size={18} strokeWidth={2.5} /> Install Waypoint app
             </Btn>
           )}
         </Card>

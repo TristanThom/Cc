@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.shiftodo.app',
-  appName: 'ShiftOdo',
+  appId: 'com.waypoint.app',
+  appName: 'Waypoint',
   webDir: 'dist',
   backgroundColor: '#0F172A',
   plugins: {
