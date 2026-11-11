@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ComponentType } from 'react'
 import Onboarding from './components/Onboarding'
 import { Confirm, cx } from './components/ui'
 import { currentOdo, maintState } from './lib/engine'
+import { closeTop, isNative } from './lib/native'
 import { useInstall, useOnline } from './lib/pwa'
 import { useStore, useToast, useVehicle } from './lib/store'
 import Alerts from './tabs/Alerts'
@@ -41,10 +42,34 @@ export default function App() {
     if (setup) setNav([0, 0])
   }, [setup])
 
+  // Android hardware back: close the open sheet, else return Home, else leave the app.
+  const tabRef = useRef(tab)
+  tabRef.current = tab
+  useEffect(() => {
+    if (!isNative) return
+    let remove: (() => void) | undefined
+    let cancelled = false
+    import('@capacitor/app').then(({ App: NativeApp }) =>
+      NativeApp.addListener('backButton', () => {
+        if (closeTop()) return
+        if (tabRef.current !== 0) setNav([0, -1])
+        else NativeApp.minimizeApp()
+      }).then((h) => {
+        if (cancelled) void h.remove()
+        else remove = () => void h.remove()
+      }),
+    )
+    return () => {
+      cancelled = true
+      remove?.()
+    }
+  }, [])
+
   const View = TABS[tab].view
 
   return (
     <div className="flex h-full flex-col">
+      <div aria-hidden className="shrink-0 bg-ink" style={{ height: 'var(--sat)' }} />
       {simBar && <SimBar />}
       {!online && (
         <div role="status" className="flex shrink-0 items-center justify-center gap-2 border-b-2 border-ink bg-amber px-3 py-1.5 text-sm font-extrabold">
@@ -79,6 +104,7 @@ export default function App() {
       </main>
 
       {!setup && <BottomNav tab={tab} goTab={goTab} alertCount={alertCount} />}
+      <div aria-hidden className="shrink-0 bg-ink" style={{ height: 'var(--sab)' }} />
       <Toast />
     </div>
   )
@@ -199,7 +225,7 @@ function BottomNav({ tab, goTab, alertCount }: { tab: number; goTab: (i: number)
   const hasNext = win < TABS.length - VISIBLE
 
   return (
-    <nav aria-label="Sections" className="relative shrink-0 border-t-2 border-ink bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav aria-label="Sections" className="relative shrink-0 border-t-2 border-ink bg-white md:hidden">
       <div className="overflow-hidden">
         <motion.div
           className="flex touch-pan-y"

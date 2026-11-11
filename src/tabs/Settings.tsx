@@ -1,7 +1,8 @@
 import { Car, Check, DatabaseBackup, Download, FlaskConical, Pencil, Plus, Smartphone, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Segmented, Sheet } from '../components/ui'
-import { currentOdo, defaultRate, download, fmtRate, num } from '../lib/engine'
+import { currentOdo, defaultRate, fmtRate, num } from '../lib/engine'
+import { isNative, saveFile } from '../lib/native'
 import { snapshot, toast, useStore } from '../lib/store'
 import type { Vehicle } from '../lib/types'
 import { useInstall } from '../lib/pwa'
@@ -23,9 +24,9 @@ export default function Settings() {
   const { unit } = settings
   const showForm = (v: Vehicle | null) => (setForm((f) => ({ v, key: f.key + 1 })), setFormOpen(true))
 
-  const exportBackup = () => {
-    download(`shiftodo-backup-${new Date().toLocaleDateString('en-CA')}.json`, JSON.stringify({ app: 'ShiftOdo', version: 1, exportedAt: new Date().toISOString(), data: snapshot() }, null, 2), 'application/json')
-    toast('Backup downloaded')
+  const exportBackup = async () => {
+    const saved = await saveFile(`shiftodo-backup-${new Date().toLocaleDateString('en-CA')}.json`, JSON.stringify({ app: 'ShiftOdo', version: 1, exportedAt: new Date().toISOString(), data: snapshot() }, null, 2), 'application/json')
+    if (saved) toast(isNative ? 'Backup ready' : 'Backup downloaded')
   }
   const onFile = async (f?: File) => {
     if (!f) return

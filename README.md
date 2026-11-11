@@ -14,6 +14,24 @@ npm run build    # type-check + production build with service worker in dist/
 npm run preview  # serve the production build
 ```
 
+## Android app
+
+The same code ships as a native Android app through Capacitor (`android/`, app id
+`com.shiftodo.app`). The web files are bundled inside the APK, so it runs with no server
+and no network.
+
+- **Get an APK without any setup**: every push runs the "Android APK" GitHub Action;
+  download `ShiftOdo-debug-apk` from the run's Artifacts and install it on a phone
+  (allow "install unknown apps" when prompted).
+- **Build locally** (needs Android Studio / Android SDK and JDK 21):
+  `npm run android:apk`, or `npm run android:sync && npm run android:open` to run it
+  from Android Studio.
+- **Play Store**: in Android Studio use Build → Generate Signed App Bundle with your own
+  upload key, then upload the `.aab` in the Play Console.
+
+In the app, CSV/JSON exports and the tax report go through the Android share sheet, and
+the hardware back button closes the open sheet, then returns Home, then leaves the app.
+
 ## How it works
 
 - **Continuous odometer chain** (`src/lib/engine.ts`): drivers only log a start and end

@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Camera, Delete, Minus, Plus, Trash2, X } from 'lucide-react'
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { SWATCHES } from '../lib/defaults'
+import { pushBack } from '../lib/native'
 import { toast } from '../lib/store'
 
 export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(' ')
@@ -127,12 +128,19 @@ export function Sheet({
   wide?: boolean
 }) {
   const titleId = useId()
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current()
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+    // Android hardware back closes the most recently opened sheet.
+    const popBack = pushBack({ close: () => closeRef.current() })
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      popBack()
+    }
+  }, [open])
 
   return (
     <AnimatePresence>
@@ -164,7 +172,7 @@ export function Sheet({
               </button>
             </header>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4">{children}</div>
-            {footer && <footer className="shrink-0 space-y-2 border-t-2 border-ink bg-bg p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</footer>}
+            {footer && <footer className="shrink-0 space-y-2 border-t-2 border-ink bg-bg p-4 pb-[max(1rem,var(--sab))]">{footer}</footer>}
           </motion.div>
         </div>
       )}

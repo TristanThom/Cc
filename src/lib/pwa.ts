@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { isNative } from './native'
 import { toast } from './store'
 
 interface InstallEvent extends Event {
@@ -8,8 +9,8 @@ interface InstallEvent extends Event {
 
 let deferred: InstallEvent | null = null
 let installed =
-  typeof window !== 'undefined' &&
-  (window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true)
+  isNative ||
+  (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true)
 const subs = new Set<() => void>()
 const emit = () => subs.forEach((f) => f())
 

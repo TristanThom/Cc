@@ -2,7 +2,8 @@ import { Camera, Coffee, Download, FileText, Pencil, Printer, Search, Trash2, Us
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BreakStepper, Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Keypad, Pill, Segmented, Sheet } from '../components/ui'
-import { adjustBreaks, buildLedger, download, fmtDate, fmtDateYear, fmtDuration, fmtRate, fmtTime, grossMinutes, ledgerCsv, money, num, shiftLengthMin, toLocalInput } from '../lib/engine'
+import { isNative, saveFile, standaloneHtml } from '../lib/native'
+import { adjustBreaks, buildLedger, fmtDate, fmtDateYear, fmtDuration, fmtRate, fmtTime, grossMinutes, ledgerCsv, money, num, shiftLengthMin, toLocalInput } from '../lib/engine'
 import { uid } from '../lib/defaults'
 import { toast, useNow, useStore, useVehicle } from '../lib/store'
 import type { LedgerEntry, Shift, Vehicle } from '../lib/types'
@@ -40,10 +41,10 @@ export default function History() {
     return hay.join(' ').toLowerCase().includes(needle)
   })
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
     if (!ledger.length) return toast('Nothing to export yet.', 'err')
-    download(`shiftodo-mileage-${v.model.replace(/\W+/g, '-').toLowerCase() || 'vehicle'}-${new Date().toLocaleDateString('en-CA')}.csv`, '﻿' + ledgerCsv(v, ledger, rate, unit, now), 'text/csv;charset=utf-8')
-    toast('Mileage log exported')
+    const saved = await saveFile(`shiftodo-mileage-${v.model.replace(/\W+/g, '-').toLowerCase() || 'vehicle'}-${new Date().toLocaleDateString('en-CA')}.csv`, '﻿' + ledgerCsv(v, ledger, rate, unit, now), 'text/csv;charset=utf-8')
+    if (saved) toast('Mileage log exported')
   }
 
   return (
@@ -678,8 +679,17 @@ function TaxReport({ open, onClose, vehicle, ledger, now }: { open: boolean; onC
                 <option key={x.year}>{x.year}</option>
               ))}
             </select>
-            <Btn tone="amber" className="flex-1" onClick={() => window.print()}>
-              <Printer size={20} strokeWidth={2.5} /> Print / PDF
+            <Btn
+              tone="amber"
+              className="flex-1"
+              onClick={() => {
+                // Android WebView has no print dialog: share a standalone copy that any browser can print or save as PDF.
+                if (!isNative) return window.print()
+                const title = `ShiftOdo mileage report ${y.year} ${vehicle.model}`
+                void saveFile(`${title.replace(/\W+/g, '-').toLowerCase()}.html`, standaloneHtml(title, document.getElementById('print-root')!), 'text/html')
+              }}
+            >
+              <Printer size={20} strokeWidth={2.5} /> {isNative ? 'Share report' : 'Print / PDF'}
             </Btn>
           </div>
         }
