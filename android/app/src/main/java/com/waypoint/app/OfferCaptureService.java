@@ -36,6 +36,7 @@ public class OfferCaptureService extends AccessibilityService {
     private static final long SHOT_INTERVAL_NEW_MONEY_MS = 1000;
     private static final long SHOT_INTERVAL_MONEY_MS = 8000;
     private static final long SHOT_INTERVAL_OTHER_MS = 120000;
+    private static final long SHOT_INTERVAL_UNREADABLE_MS = 5000;
     private static final int MAX_NODES = 400;
     private static final int MAX_DEPTH = 60;
     private static final int SHOT_WIDTH = 540;
@@ -137,9 +138,24 @@ public class OfferCaptureService extends AccessibilityService {
                     collect(root, 0, nodes, sig, money);
                 }
             }
-            if (pkg == null || nodes.length() == 0) return;
+            if (pkg == null) return;
 
             long now = System.currentTimeMillis();
+            if (nodes.length() == 0) {
+                // The driver app is on screen but exposes no readable text, so screenshots are the
+                // only record. Without text we cannot tell an offer from a map, so shoot steadily.
+                if (Build.VERSION.SDK_INT >= 30 && now - lastShotAt >= SHOT_INTERVAL_UNREADABLE_MS && CaptureStore.shotCount(this) < CaptureStore.MAX_SHOTS) {
+                    lastShotAt = now;
+                    String name = now + ".jpg";
+                    JSONObject o = event("screen", pkg);
+                    o.put("unreadable", true);
+                    o.put("shot", name);
+                    takeShot(new File(CaptureStore.shotsDir(this), name));
+                    CaptureStore.append(this, o.toString());
+                }
+                return;
+            }
+
             int hash = sig.toString().hashCode();
             boolean changed = hash != lastHash;
             boolean hasMoney = money[0];
