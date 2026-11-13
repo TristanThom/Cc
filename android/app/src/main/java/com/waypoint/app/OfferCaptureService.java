@@ -40,6 +40,7 @@ public class OfferCaptureService extends AccessibilityService {
     private static final int MAX_NODES = 400;
     private static final int MAX_DEPTH = 60;
     private static final int SHOT_WIDTH = 540;
+    private static final int WIDE_SCREEN_PX = 1400;
 
     private HandlerThread thread;
     private Handler worker;
@@ -70,6 +71,10 @@ public class OfferCaptureService extends AccessibilityService {
     /** Only the Uber and Lyft driver apps are ever recorded. */
     private static boolean isTarget(String pkg) {
         return pkg.contains("driver") && (pkg.contains("uber") || pkg.contains("lyft"));
+    }
+
+    private static String appName(String pkg) {
+        return pkg.contains("lyft") ? "lyft" : "uber";
     }
 
     @Override
@@ -127,15 +132,16 @@ public class OfferCaptureService extends AccessibilityService {
                     if (root == null || root.getPackageName() == null) continue;
                     String p = root.getPackageName().toString();
                     if (!isTarget(p)) continue;
-                    pkg = p;
-                    collect(root, 0, nodes, sig, money);
+                    pkg = pkg == null ? p : (pkg.contains(p) ? pkg : pkg + "," + p);
+                    // Each app gets its own node budget so one busy screen cannot crowd out the other.
+                    collect(root, 0, appName(p), nodes.length() + MAX_NODES, nodes, sig, money);
                 }
             }
             if (pkg == null) {
                 AccessibilityNodeInfo root = getRootInActiveWindow();
                 if (root != null && root.getPackageName() != null && isTarget(root.getPackageName().toString())) {
                     pkg = root.getPackageName().toString();
-                    collect(root, 0, nodes, sig, money);
+                    collect(root, 0, appName(pkg), MAX_NODES, nodes, sig, money);
                 }
             }
             if (pkg == null) return;
@@ -166,6 +172,9 @@ public class OfferCaptureService extends AccessibilityService {
                 lastHash = hash;
                 lastScreenAt = now;
                 JSONObject o = event("screen", pkg);
+                // Display size tells folded from unfolded when the log is analysed.
+                android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+                o.put("display", dm.widthPixels + "x" + dm.heightPixels);
                 o.put("money", hasMoney);
                 o.put("nodes", nodes);
 
@@ -189,8 +198,8 @@ public class OfferCaptureService extends AccessibilityService {
     }
 
     /** Depth-first walk collecting every node that carries text, a description, or a tappable id. */
-    private void collect(AccessibilityNodeInfo n, int depth, JSONArray out, StringBuilder sig, boolean[] money) {
-        if (n == null || depth > MAX_DEPTH || out.length() >= MAX_NODES) return;
+    private void collect(AccessibilityNodeInfo n, int depth, String app, int limit, JSONArray out, StringBuilder sig, boolean[] money) {
+        if (n == null || depth > MAX_DEPTH || out.length() >= limit) return;
         try {
             String text = str(n.getText());
             String desc = str(n.getContentDescription());
@@ -198,6 +207,7 @@ public class OfferCaptureService extends AccessibilityService {
             boolean clickable = n.isClickable();
             if (!text.isEmpty() || !desc.isEmpty() || (clickable && !id.isEmpty())) {
                 JSONObject o = new JSONObject();
+                o.put("app", app);
                 if (!text.isEmpty()) o.put("text", text);
                 if (!desc.isEmpty()) o.put("desc", desc);
                 if (!id.isEmpty()) o.put("id", id);
@@ -208,11 +218,11 @@ public class OfferCaptureService extends AccessibilityService {
                 n.getBoundsInScreen(r);
                 o.put("bounds", r.flattenToString());
                 out.put(o);
-                sig.append(text).append('|').append(desc).append('|').append(id).append('\n');
+                sig.append(app).append('|').append(text).append('|').append(desc).append('|').append(id).append('\n');
                 if (text.indexOf('$') >= 0 || desc.indexOf('$') >= 0) money[0] = true;
             }
             for (int i = 0; i < n.getChildCount(); i++) {
-                collect(n.getChild(i), depth + 1, out, sig, money);
+                collect(n.getChild(i), depth + 1, app, limit, out, sig, money);
             }
         } catch (Exception ignored) {
             // Nodes can go stale mid-walk; skip the subtree.
@@ -250,8 +260,11 @@ public class OfferCaptureService extends AccessibilityService {
             Bitmap soft = hw.copy(Bitmap.Config.ARGB_8888, false);
             hw.recycle();
             if (soft == null) return;
-            int h = Math.max(1, soft.getHeight() * SHOT_WIDTH / Math.max(1, soft.getWidth()));
-            Bitmap small = Bitmap.createScaledBitmap(soft, SHOT_WIDTH, h, true);
+            // Wide screens (an unfolded phone with two apps side by side) keep twice the width so
+            // each app is still legible.
+            int w = soft.getWidth() >= WIDE_SCREEN_PX ? SHOT_WIDTH * 2 : SHOT_WIDTH;
+            int h = Math.max(1, soft.getHeight() * w / Math.max(1, soft.getWidth()));
+            Bitmap small = Bitmap.createScaledBitmap(soft, w, h, true);
             try (FileOutputStream out = new FileOutputStream(file)) {
                 small.compress(Bitmap.CompressFormat.JPEG, 60, out);
             }
