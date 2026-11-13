@@ -6,6 +6,7 @@ import { isNative, saveFile } from '../lib/native'
 import { snapshot, toast, useStore } from '../lib/store'
 import type { Vehicle } from '../lib/types'
 import { useInstall } from '../lib/pwa'
+import OfferCaptureCard from '../components/OfferCapture'
 
 export default function Settings() {
   const vehicles = useStore((s) => s.vehicles)
@@ -157,6 +158,8 @@ export default function Settings() {
             </Btn>
           )}
         </Card>
+
+        {isNative && <OfferCaptureCard />}
       </div>
 
       <VehicleSheet key={form.key} open={formOpen} vehicle={form.v} onClose={() => setFormOpen(false)} />
