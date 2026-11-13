@@ -70,7 +70,7 @@ export default function OfferCaptureCard() {
         <Radar size={20} strokeWidth={2.5} /> Offer capture <span className="rounded-full bg-amber px-2 py-0.5 text-[10px] uppercase tracking-wide">Beta</span>
       </h2>
       <p className="text-sm font-semibold text-ink-2">
-        Records what the Uber and Lyft driver apps show (text, your taps, and periodic screenshots) to a log on this phone, so accepted and rejected offers can be logged. Other apps are ignored and nothing is
+        Records what the Uber and Lyft driver apps show (text, your taps, and a screenshot when a new screen with a price appears) to a log on this phone, so accepted and rejected offers can be logged. Other apps are ignored and nothing is
         sent anywhere. Uber and Lyft say tools like this break their terms; use it at your own risk.
       </p>
 

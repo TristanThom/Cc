@@ -33,8 +33,9 @@ public class OfferCaptureService extends AccessibilityService {
 
     private static final long SCREEN_INTERVAL_MONEY_MS = 700;
     private static final long SCREEN_INTERVAL_OTHER_MS = 4000;
-    private static final long SHOT_INTERVAL_MONEY_MS = 2000;
-    private static final long SHOT_INTERVAL_OTHER_MS = 60000;
+    private static final long SHOT_INTERVAL_NEW_MONEY_MS = 1000;
+    private static final long SHOT_INTERVAL_MONEY_MS = 8000;
+    private static final long SHOT_INTERVAL_OTHER_MS = 120000;
     private static final int MAX_NODES = 400;
     private static final int MAX_DEPTH = 60;
     private static final int SHOT_WIDTH = 540;
@@ -45,6 +46,7 @@ public class OfferCaptureService extends AccessibilityService {
     private long lastScreenAt;
     private long lastShotAt;
     private int lastHash;
+    private int lastShotLayout;
     private final Set<String> reportedSkipped = new HashSet<>();
 
     @Override
@@ -151,9 +153,14 @@ public class OfferCaptureService extends AccessibilityService {
                 o.put("money", hasMoney);
                 o.put("nodes", nodes);
 
-                long shotGap = hasMoney ? SHOT_INTERVAL_MONEY_MS : SHOT_INTERVAL_OTHER_MS;
+                // One screenshot when a new kind of screen with a price appears (digits ignored, so a
+                // ticking countdown is not "new"), then a slow refresh while it stays up.
+                int layout = sig.toString().replaceAll("[0-9]", "").hashCode();
+                boolean newLayout = layout != lastShotLayout;
+                long shotGap = !hasMoney ? SHOT_INTERVAL_OTHER_MS : newLayout ? SHOT_INTERVAL_NEW_MONEY_MS : SHOT_INTERVAL_MONEY_MS;
                 if (Build.VERSION.SDK_INT >= 30 && now - lastShotAt >= shotGap && CaptureStore.shotCount(this) < CaptureStore.MAX_SHOTS) {
                     lastShotAt = now;
+                    lastShotLayout = layout;
                     String name = now + ".jpg";
                     o.put("shot", name);
                     takeShot(new File(CaptureStore.shotsDir(this), name));
