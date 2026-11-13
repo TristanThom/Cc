@@ -82,9 +82,8 @@ export interface Actions {
   // settings & data
   setRate: (rate: number) => void
   setUnit: (unit: Unit) => void
-  setSimBar: (on: boolean) => void
   finishOnboarding: () => void
-  simulate: (mode: 'welcome' | 'empty' | 'demo') => void
+  loadDemo: () => void
   clearAll: () => void
   restore: (raw: unknown) => Result
 }
@@ -247,25 +246,9 @@ export const useStore = create<AppData & Actions>()(
           const converted = r === defaultRate(s.settings.unit) ? defaultRate(unit) : unit === 'km' ? r / KM_PER_MI : r * KM_PER_MI
           return { settings: { ...s.settings, unit, rate: Math.round(converted * 1000) / 1000 } }
         }),
-      setSimBar: (on) => set((s) => ({ settings: { ...s.settings, simBar: on } })),
       finishOnboarding: () => set({ onboarded: true }),
 
-      simulate: (mode) => {
-        const keep = get().settings
-        if (mode === 'demo') return set({ ...demoData(), settings: keep })
-        const data = emptyData()
-        if (mode === 'welcome') return set({ ...data, settings: keep })
-        const id = uid()
-        set({
-          ...data,
-          settings: keep,
-          onboarded: true,
-          vehicles: [{ id, year: '2021', make: 'Toyota', model: 'Prius Prime', plate: '', startOdo: 48210 }],
-          activeVehicleId: id,
-          maint: defaultMaint(id, 48210),
-          isDemo: true,
-        })
-      },
+      loadDemo: () => set({ ...demoData(), settings: get().settings }),
       clearAll: () => set({ ...emptyData(), settings: get().settings }),
       restore: (raw) => {
         const d = (raw as { data?: Partial<AppData> })?.data ?? (raw as Partial<AppData>)

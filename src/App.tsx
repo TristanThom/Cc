@@ -1,11 +1,11 @@
-import { BellRing, Check, ChevronDown, DollarSign, Download, History as HistoryIcon, Home as HomeIcon, Settings as SettingsIcon, WifiOff, X } from 'lucide-react'
+import { BellRing, Check, ChevronDown, DollarSign, History as HistoryIcon, Home as HomeIcon, Settings as SettingsIcon, WifiOff } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState, type ComponentType } from 'react'
 import Onboarding from './components/Onboarding'
-import { Confirm, cx } from './components/ui'
+import { cx } from './components/ui'
 import { currentOdo, maintState } from './lib/engine'
 import { closeTop, isNative } from './lib/native'
-import { useInstall, useOnline } from './lib/pwa'
+import { useOnline } from './lib/pwa'
 import { useStore, useToast, useVehicle } from './lib/store'
 import Alerts from './tabs/Alerts'
 import History from './tabs/History'
@@ -27,7 +27,6 @@ const clampWin = (i: number) => Math.min(TABS.length - VISIBLE, Math.max(0, i))
 export default function App() {
   const onboarded = useStore((s) => s.onboarded)
   const hasVehicle = useStore((s) => s.vehicles.length > 0)
-  const simBar = useStore((s) => s.settings.simBar)
   const online = useOnline()
   const [[tab, dir], setNav] = useState<[number, number]>([0, 0])
   const goTab = (i: number) => setNav(([cur]) => [i, i > cur ? 1 : -1])
@@ -70,7 +69,6 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <div aria-hidden className="shrink-0 bg-ink" style={{ height: 'var(--sat)' }} />
-      {simBar && <SimBar />}
       {!online && (
         <div role="status" className="flex shrink-0 items-center justify-center gap-2 border-b-2 border-ink bg-amber px-3 py-1.5 text-sm font-extrabold">
           <WifiOff size={16} strokeWidth={3} /> Offline — everything still works and saves on this device
@@ -278,61 +276,6 @@ function BottomNav({ tab, goTab, alertCount }: { tab: number; goTab: (i: number)
         ))}
       </div>
     </nav>
-  )
-}
-
-/* ---------------------------- Simulator bar ------------------------- */
-
-function SimBar() {
-  const onboarded = useStore((s) => s.onboarded)
-  const isDemo = useStore((s) => s.isDemo)
-  const shiftCount = useStore((s) => s.shifts.length)
-  const vehicleCount = useStore((s) => s.vehicles.length)
-  const { simulate, setSimBar } = useStore.getState()
-  const install = useInstall()
-  const [ask, setAsk] = useState<'welcome' | 'empty' | 'demo' | null>(null)
-  const current = !onboarded || vehicleCount === 0 ? 'welcome' : shiftCount === 0 ? 'empty' : isDemo ? 'demo' : null
-  const hasRealData = !isDemo && (shiftCount > 0 || useStore.getState().txns.length > 0)
-  const run = (m: 'welcome' | 'empty' | 'demo') => (hasRealData ? setAsk(m) : simulate(m))
-  const opts = [
-    ['welcome', '1. Welcome Setup'],
-    ['empty', '2. Empty Dashboard'],
-    ['demo', '3. Load Demo Data'],
-  ] as const
-  return (
-    <div className="shrink-0 border-b-2 border-ink bg-ink text-white">
-      <div className="no-scrollbar mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-1.5">
-        <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-amber">Preview</span>
-        {opts.map(([m, label]) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => run(m)}
-            aria-pressed={current === m}
-            className={cx('min-h-12 shrink-0 rounded-lg border-2 px-3 text-xs font-extrabold', current === m ? 'border-amber bg-amber text-ink' : 'border-white/50 text-white active:bg-white/10')}
-          >
-            {label}
-          </button>
-        ))}
-        <span className="flex-1" />
-        {install.state !== 'installed' && (
-          <button type="button" onClick={install.prompt} className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-lg border-2 border-white/50 px-3 text-xs font-extrabold active:bg-white/10">
-            <Download size={16} strokeWidth={3} /> Install App
-          </button>
-        )}
-        <button type="button" onClick={() => setSimBar(false)} aria-label="Hide preview bar (re-enable in Settings)" className="grid size-12 shrink-0 place-items-center rounded-lg active:bg-white/10">
-          <X size={18} strokeWidth={3} />
-        </button>
-      </div>
-      <Confirm
-        open={ask !== null}
-        onClose={() => setAsk(null)}
-        title="Replace your data?"
-        body="The preview modes overwrite everything currently in the app, including your logged shifts and transactions. Export a backup from Settings first if you want to keep them."
-        action="Replace my data"
-        onConfirm={() => ask && simulate(ask)}
-      />
-    </div>
   )
 }
 

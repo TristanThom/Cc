@@ -73,7 +73,6 @@ export interface MaintItem {
 export interface Settings {
   rate: number
   unit: Unit
-  simBar: boolean
 }
 
 export interface AppData {

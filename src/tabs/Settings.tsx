@@ -13,7 +13,7 @@ export default function Settings() {
   const activeId = useStore((s) => s.activeVehicleId)
   const shifts = useStore((s) => s.shifts)
   const settings = useStore((s) => s.settings)
-  const { selectVehicle, deleteVehicle, setRate, setUnit, setSimBar, simulate, clearAll, restore } = useStore.getState()
+  const { selectVehicle, deleteVehicle, setRate, setUnit, loadDemo, clearAll, restore } = useStore.getState()
   const [form, setForm] = useState<{ v: Vehicle | null; key: number }>({ v: null, key: 0 })
   const [formOpen, setFormOpen] = useState(false)
   const [del, setDel] = useState<Vehicle | null>(null)
@@ -148,10 +148,6 @@ export default function Settings() {
               <Trash2 size={18} strokeWidth={2.5} /> Clear all data
             </Btn>
           </div>
-          <label className="flex min-h-12 items-center justify-between gap-3 text-sm font-extrabold">
-            Show preview simulator bar
-            <input type="checkbox" className="size-7 accent-[#0F172A]" checked={settings.simBar} onChange={(e) => setSimBar(e.target.checked)} />
-          </label>
           {install.state !== 'installed' && (
             <Btn className="w-full" onClick={install.prompt}>
               <Smartphone size={18} strokeWidth={2.5} /> Install Waypoint app
@@ -177,7 +173,7 @@ export default function Settings() {
         title={confirm === 'demo' ? 'Load sample data?' : 'Clear all data?'}
         body={confirm === 'demo' ? 'This replaces everything currently in the app with two demo vehicles and several weeks of shifts and transactions. Export a backup first if you have real data.' : 'This erases every vehicle, shift, transaction and alert on this device and returns you to setup. It cannot be undone.'}
         action={confirm === 'demo' ? 'Replace my data' : 'Erase everything'}
-        onConfirm={() => (confirm === 'demo' ? (simulate('demo'), toast('Sample data loaded')) : (clearAll(), toast('All data cleared')))}
+        onConfirm={() => (confirm === 'demo' ? (loadDemo(), toast('Sample data loaded')) : (clearAll(), toast('All data cleared')))}
       />
       <Confirm
         open={pending !== null}
