@@ -7,6 +7,7 @@ import android.hardware.HardwareBuffer;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -15,41 +16,63 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Capture mode for building the ride-offer logger.
+ * Offer tracking for the Uber and Lyft driver apps.
  *
- * While the user has switched capture on in Waypoint, this records what the Uber and Lyft
- * driver apps show (screen text, taps, and occasional screenshots) to a log file on the
- * device. It ignores every other app, never taps or types anything, and sends nothing
- * anywhere: the user exports the log from Settings when they choose to.
+ * While the user has switched tracking on in Waypoint, this:
+ *  - logs every Lyft ride offer with its details and outcome (see LyftOfferTracker);
+ *  - records what both driver apps show (screen text, taps, announced text, and a screenshot
+ *    when an offer appears) to a capture log, which is the raw material for improving the
+ *    parsers, Uber's in particular.
+ *
+ * It ignores every other app, never taps or types anything, and sends nothing anywhere:
+ * the user exports the log from Settings when they choose to.
  */
 public class OfferCaptureService extends AccessibilityService {
 
-    private static final long SCREEN_INTERVAL_MONEY_MS = 700;
-    private static final long SCREEN_INTERVAL_OTHER_MS = 4000;
-    private static final long SHOT_INTERVAL_NEW_MONEY_MS = 1000;
-    private static final long SHOT_INTERVAL_MONEY_MS = 8000;
-    private static final long SHOT_INTERVAL_OTHER_MS = 120000;
+    /** Minimum gap between logged screens of one app, by how much the screen changed. */
+    private static final long GAP_OFFER_MS = 500;
+    private static final long GAP_NEW_CONTENT_MS = 1500;
+    private static final long GAP_NUMBERS_ONLY_MS = 10_000;
+
+    private static final long SHOT_REPEAT_MS = 6000;
+    private static final long SHOT_AFTER_OFFER_MS = 1200;
     private static final long SHOT_INTERVAL_UNREADABLE_MS = 5000;
     private static final int MAX_NODES = 400;
     private static final int MAX_DEPTH = 60;
     private static final int SHOT_WIDTH = 540;
     private static final int WIDE_SCREEN_PX = 1400;
 
+    private static final String[] APPS = { "uber", "lyft" };
+    /** Uber offer cards carry a leg such as "9 min • 1.5 mi"; its navigation screens do not. */
+    private static final Pattern UBER_LEG = Pattern.compile("\\d+ mins? • [\\d.,]+ (mi|ft)");
+
     private HandlerThread thread;
     private Handler worker;
     private volatile boolean dumpScheduled;
-    private long lastScreenAt;
-    private long lastShotAt;
-    private int lastHash;
-    private int lastShotLayout;
     private final Set<String> reportedSkipped = new HashSet<>();
+    private final Map<String, String> lastEventText = new HashMap<>();
+
+    // Worker-thread state.
+    private final LyftOfferTracker lyft = new LyftOfferTracker();
+    private final Map<String, Integer> lastHash = new HashMap<>();
+    private final Map<String, Integer> lastLooseHash = new HashMap<>();
+    private final Map<String, Long> lastScreenAt = new HashMap<>();
+    private boolean offerWasVisible;
+    private long offerEndedAt;
+    private boolean afterShotPending;
+    private long lastShotAt;
 
     @Override
     protected void onServiceConnected() {
@@ -90,7 +113,8 @@ public class OfferCaptureService extends AccessibilityService {
             return;
         }
 
-        if (e.getEventType() == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+        int type = e.getEventType();
+        if (type == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             JSONObject o = event("click", pkg);
             try {
                 o.put("text", joinText(e.getText()));
@@ -105,6 +129,23 @@ public class OfferCaptureService extends AccessibilityService {
                 }
             } catch (Exception ignored) {}
             write(o);
+        } else {
+            // Some screens (Uber's offer card among them) hide their parts from the node tree
+            // but still announce their text through the event itself, so keep that too.
+            String text = joinText(e.getText());
+            String desc = str(e.getContentDescription());
+            String said = text.isEmpty() ? desc : text;
+            if (!said.isEmpty() && !said.equals(lastEventText.get(pkg))) {
+                lastEventText.put(pkg, said);
+                JSONObject o = event("event", pkg);
+                try {
+                    o.put("etype", type);
+                    o.put("text", text);
+                    o.put("desc", desc);
+                    o.put("cls", str(e.getClassName()));
+                } catch (Exception ignored) {}
+                write(o);
+            }
         }
 
         // Throttle (not debounce): navigation screens change constantly and must not starve the dump.
@@ -114,16 +155,20 @@ public class OfferCaptureService extends AccessibilityService {
         }
     }
 
+    /** What one driver app is showing right now. */
+    private static final class AppScreen {
+        final JSONArray nodes = new JSONArray();
+        final List<OfferNode> plain = new ArrayList<>();
+        final StringBuilder sig = new StringBuilder();
+        boolean present;
+    }
+
     private void dumpScreens() {
         dumpScheduled = false;
         try {
-            long logBytes = CaptureStore.log(this).length();
-            if (logBytes > CaptureStore.HARD_CAP_BYTES) return;
-
-            JSONArray nodes = new JSONArray();
-            StringBuilder sig = new StringBuilder();
-            String pkg = null;
-            boolean[] money = { false };
+            long now = System.currentTimeMillis();
+            Map<String, AppScreen> screens = new HashMap<>();
+            for (String app : APPS) screens.put(app, new AppScreen());
 
             List<AccessibilityWindowInfo> windows = getWindows();
             if (windows != null) {
@@ -132,82 +177,121 @@ public class OfferCaptureService extends AccessibilityService {
                     if (root == null || root.getPackageName() == null) continue;
                     String p = root.getPackageName().toString();
                     if (!isTarget(p)) continue;
-                    pkg = pkg == null ? p : (pkg.contains(p) ? pkg : pkg + "," + p);
-                    // Each app gets its own node budget so one busy screen cannot crowd out the other.
-                    collect(root, 0, appName(p), nodes.length() + MAX_NODES, nodes, sig, money);
+                    AppScreen s = screens.get(appName(p));
+                    s.present = true;
+                    // Each window gets its own node budget so one busy screen cannot crowd out another.
+                    collect(root, 0, s, s.nodes.length() + MAX_NODES);
                 }
             }
-            if (pkg == null) {
+            AppScreen uber = screens.get("uber");
+            AppScreen lyftScreen = screens.get("lyft");
+            if (!uber.present && !lyftScreen.present) {
                 AccessibilityNodeInfo root = getRootInActiveWindow();
                 if (root != null && root.getPackageName() != null && isTarget(root.getPackageName().toString())) {
-                    pkg = root.getPackageName().toString();
-                    collect(root, 0, appName(pkg), MAX_NODES, nodes, sig, money);
+                    AppScreen s = screens.get(appName(root.getPackageName().toString()));
+                    s.present = true;
+                    collect(root, 0, s, MAX_NODES);
                 }
             }
-            if (pkg == null) return;
 
-            long now = System.currentTimeMillis();
-            if (nodes.length() == 0) {
-                // The driver app is on screen but exposes no readable text, so screenshots are the
-                // only record. Without text we cannot tell an offer from a map, so shoot steadily.
-                if (Build.VERSION.SDK_INT >= 30 && now - lastShotAt >= SHOT_INTERVAL_UNREADABLE_MS && CaptureStore.shotCount(this) < CaptureStore.MAX_SHOTS) {
-                    lastShotAt = now;
-                    String name = now + ".jpg";
-                    JSONObject o = event("screen", pkg);
-                    o.put("unreadable", true);
-                    o.put("shot", name);
-                    takeShot(new File(CaptureStore.shotsDir(this), name));
-                    CaptureStore.append(this, o.toString());
-                }
-                return;
-            }
+            // 1. Offer logging. Runs on every screen, independent of the capture log's limits.
+            List<Offer> resolved = lyftScreen.present && lyftScreen.plain.size() > 0 ? lyft.onScreen(now, lyftScreen.plain) : lyft.tick(now);
+            for (Offer o : resolved) OfferStore.append(this, o);
 
-            int hash = sig.toString().hashCode();
-            boolean changed = hash != lastHash;
-            boolean hasMoney = money[0];
+            if (!uber.present && !lyftScreen.present) return;
 
-            long minGap = hasMoney ? SCREEN_INTERVAL_MONEY_MS : SCREEN_INTERVAL_OTHER_MS;
-            boolean room = hasMoney || logBytes < CaptureStore.SOFT_CAP_BYTES;
-            if (changed && room && now - lastScreenAt >= minGap) {
-                lastHash = hash;
-                lastScreenAt = now;
-                JSONObject o = event("screen", pkg);
-                // Display size tells folded from unfolded when the log is analysed.
-                android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            boolean lyftOffer = lyftScreen.present && lyft.cardVisible();
+            boolean uberOffer = uber.present && looksLikeUberOffer(uber.plain);
+            boolean offerVisible = lyftOffer || uberOffer;
+
+            // 2. Capture log, one entry per app whose screen changed.
+            boolean underCap = CaptureStore.log(this).length() < CaptureStore.HARD_CAP_BYTES;
+            for (String app : APPS) {
+                AppScreen s = screens.get(app);
+                if (!s.present || s.nodes.length() == 0 || !underCap) continue;
+                boolean offer = app.equals("lyft") ? lyftOffer : uberOffer;
+                String sig = s.sig.toString();
+                int hash = sig.hashCode();
+                int loose = sig.replaceAll("[0-9]", "").hashCode();
+                Integer prev = lastHash.get(app);
+                if (prev != null && prev == hash) continue;
+                Integer prevLoose = lastLooseHash.get(app);
+                long gap = offer ? GAP_OFFER_MS : (prevLoose == null || prevLoose != loose) ? GAP_NEW_CONTENT_MS : GAP_NUMBERS_ONLY_MS;
+                Long at = lastScreenAt.get(app);
+                if (at != null && now - at < gap) continue;
+                lastHash.put(app, hash);
+                lastLooseHash.put(app, loose);
+                lastScreenAt.put(app, now);
+
+                JSONObject o = event("screen", app);
+                DisplayMetrics dm = getResources().getDisplayMetrics();
                 o.put("display", dm.widthPixels + "x" + dm.heightPixels);
-                o.put("money", hasMoney);
-                o.put("nodes", nodes);
-
-                // One screenshot when a new kind of screen with a price appears (digits ignored, so a
-                // ticking countdown is not "new"), then a slow refresh while it stays up.
-                int layout = sig.toString().replaceAll("[0-9]", "").hashCode();
-                boolean newLayout = layout != lastShotLayout;
-                long shotGap = !hasMoney ? SHOT_INTERVAL_OTHER_MS : newLayout ? SHOT_INTERVAL_NEW_MONEY_MS : SHOT_INTERVAL_MONEY_MS;
-                if (Build.VERSION.SDK_INT >= 30 && now - lastShotAt >= shotGap && CaptureStore.shotCount(this) < CaptureStore.MAX_SHOTS) {
-                    lastShotAt = now;
-                    lastShotLayout = layout;
-                    String name = now + ".jpg";
-                    o.put("shot", name);
-                    takeShot(new File(CaptureStore.shotsDir(this), name));
-                }
+                o.put("offer", offer);
+                o.put("nodes", s.nodes);
                 CaptureStore.append(this, o.toString());
+            }
+
+            // 3. Screenshots: when an offer appears, while it stays up, and once just after it goes.
+            boolean unreadable = (uber.present && uber.nodes.length() == 0) || (lyftScreen.present && lyftScreen.nodes.length() == 0);
+            String reason = null;
+            if (offerVisible) {
+                if (!offerWasVisible || now - lastShotAt >= SHOT_REPEAT_MS) reason = "offer";
+                afterShotPending = true;
+            } else {
+                if (offerWasVisible) offerEndedAt = now;
+                if (afterShotPending && now - offerEndedAt >= SHOT_AFTER_OFFER_MS) {
+                    reason = "after_offer";
+                    afterShotPending = false;
+                } else if (unreadable && now - lastShotAt >= SHOT_INTERVAL_UNREADABLE_MS) {
+                    // A driver app is on screen but exposes no text, so pictures are the only record.
+                    reason = "unreadable";
+                }
+            }
+            offerWasVisible = offerVisible;
+            if (reason != null && Build.VERSION.SDK_INT >= 30) {
+                lastShotAt = now;
+                String name = now + ".jpg";
+                JSONObject o = event("shot", getPackageName());
+                o.put("name", name);
+                o.put("reason", reason);
+                o.put("lyftOffer", lyftOffer);
+                o.put("uberOffer", uberOffer);
+                CaptureStore.append(this, o.toString());
+                CaptureStore.trimShots(this);
+                takeShot(new File(CaptureStore.shotsDir(this), name));
+            }
+
+            // An offer that has gone still needs its "after" picture and its timeout check even
+            // if the apps stop producing events, so look again shortly.
+            if (((afterShotPending && !offerVisible) || lyft.hasOpen()) && !dumpScheduled) {
+                dumpScheduled = true;
+                worker.postDelayed(this::dumpScreens, 1500);
             }
         } catch (Exception ex) {
             write(error("dump_failed", ex));
         }
     }
 
+    private static boolean looksLikeUberOffer(List<OfferNode> nodes) {
+        for (OfferNode n : nodes) {
+            String l = n.label();
+            if (l.equals("Match") || l.equals("Accept") || UBER_LEG.matcher(l).find()) return true;
+        }
+        return false;
+    }
+
     /** Depth-first walk collecting every node that carries text, a description, or a tappable id. */
-    private void collect(AccessibilityNodeInfo n, int depth, String app, int limit, JSONArray out, StringBuilder sig, boolean[] money) {
-        if (n == null || depth > MAX_DEPTH || out.length() >= limit) return;
+    private void collect(AccessibilityNodeInfo n, int depth, AppScreen s, int limit) {
+        if (n == null || depth > MAX_DEPTH || s.nodes.length() >= limit) return;
         try {
             String text = str(n.getText());
             String desc = str(n.getContentDescription());
             String id = str(n.getViewIdResourceName());
             boolean clickable = n.isClickable();
-            if (!text.isEmpty() || !desc.isEmpty() || (clickable && !id.isEmpty())) {
+            // Uber's surge labels on the map change constantly and say nothing about offers.
+            boolean mapNoise = id.endsWith("/map_marker") || id.endsWith("/map_marker_title");
+            if (!mapNoise && (!text.isEmpty() || !desc.isEmpty() || (clickable && !id.isEmpty()))) {
                 JSONObject o = new JSONObject();
-                o.put("app", app);
                 if (!text.isEmpty()) o.put("text", text);
                 if (!desc.isEmpty()) o.put("desc", desc);
                 if (!id.isEmpty()) o.put("id", id);
@@ -217,12 +301,13 @@ public class OfferCaptureService extends AccessibilityService {
                 Rect r = new Rect();
                 n.getBoundsInScreen(r);
                 o.put("bounds", r.flattenToString());
-                out.put(o);
-                sig.append(app).append('|').append(text).append('|').append(desc).append('|').append(id).append('\n');
-                if (text.indexOf('$') >= 0 || desc.indexOf('$') >= 0) money[0] = true;
+                s.nodes.put(o);
+                s.plain.add(new OfferNode(text, desc, id));
+                s.sig.append(text).append('|').append(desc).append('|').append(id).append('\n');
             }
+            if (mapNoise) return;
             for (int i = 0; i < n.getChildCount(); i++) {
-                collect(n.getChild(i), depth + 1, app, limit, out, sig, money);
+                collect(n.getChild(i), depth + 1, s, limit);
             }
         } catch (Exception ignored) {
             // Nodes can go stale mid-walk; skip the subtree.
@@ -280,7 +365,10 @@ public class OfferCaptureService extends AccessibilityService {
     private void write(final JSONObject o) {
         if (worker == null) return;
         final String line = o.toString();
-        worker.post(() -> CaptureStore.append(this, line));
+        worker.post(() -> {
+            // Taps and announcements are tiny; let them through a little past the screen cap.
+            if (CaptureStore.log(this).length() < CaptureStore.HARD_CAP_BYTES + 5L * 1024 * 1024) CaptureStore.append(this, line);
+        });
     }
 
     private static JSONObject event(String type, String pkg) {
@@ -297,6 +385,7 @@ public class OfferCaptureService extends AccessibilityService {
         JSONObject o = event(type, getPackageName());
         try {
             o.put("error", String.valueOf(ex));
+            o.put("at", Arrays.toString(Arrays.copyOf(ex.getStackTrace(), Math.min(3, ex.getStackTrace().length))));
         } catch (Exception ignored) {}
         return o;
     }

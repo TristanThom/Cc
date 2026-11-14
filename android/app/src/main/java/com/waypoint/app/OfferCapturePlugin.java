@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.provider.Settings;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -29,6 +30,7 @@ public class OfferCapturePlugin extends Plugin {
         r.put("logBytes", log.exists() ? log.length() : 0);
         r.put("lastEventAt", log.exists() ? log.lastModified() : 0);
         r.put("shots", CaptureStore.shotCount(c));
+        r.put("offers", OfferStore.readLines(c).size());
         return r;
     }
 
@@ -90,6 +92,8 @@ public class OfferCapturePlugin extends Plugin {
                 File zip = new File(c.getCacheDir(), "waypoint-capture" + (withShots ? "-with-screenshots" : "") + ".zip");
                 try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(zip))) {
                     add(out, log, CaptureStore.LOG_NAME);
+                    File offers = OfferStore.file(c);
+                    if (offers.exists()) add(out, offers, OfferStore.FILE_NAME);
                     if (withShots) {
                         File[] shots = CaptureStore.shotsDir(c).listFiles();
                         if (shots != null) {
@@ -115,6 +119,28 @@ public class OfferCapturePlugin extends Plugin {
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
         }
         out.closeEntry();
+    }
+
+    /** The stored ride offers, oldest first. */
+    @PluginMethod
+    public void offers(PluginCall call) {
+        JSArray arr = new JSArray();
+        for (String line : OfferStore.readLines(getContext())) {
+            try {
+                arr.put(new JSObject(line));
+            } catch (Exception ignored) {
+                // Skip a damaged line rather than lose the whole history.
+            }
+        }
+        JSObject r = new JSObject();
+        r.put("offers", arr);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void clearOffers(PluginCall call) {
+        OfferStore.clear(getContext());
+        call.resolve();
     }
 
     @PluginMethod

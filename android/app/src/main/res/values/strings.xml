@@ -4,7 +4,7 @@
     <string name="title_activity_main">Waypoint</string>
     <string name="package_name">com.waypoint.app</string>
     <string name="custom_url_scheme">com.waypoint.app</string>
-    <string name="offer_capture_label">Waypoint offer capture</string>
-    <string name="offer_capture_summary">Records Uber and Lyft driver app screens to a log on this phone.</string>
-    <string name="offer_capture_description">While capture is switched on in Waypoint, this records the on-screen text, your taps, and occasional screenshots from the Uber and Lyft driver apps only, so ride offers can be logged. It ignores all other apps, never taps or types for you, and nothing leaves this phone unless you share the log yourself.</string>
+    <string name="offer_capture_label">Waypoint offer tracking</string>
+    <string name="offer_capture_summary">Logs Uber and Lyft ride offers on this phone.</string>
+    <string name="offer_capture_description">While offer tracking is switched on in Waypoint, this reads the Uber and Lyft driver apps only: it logs each ride offer and whether you took it, and records their on-screen text, your taps, and a screenshot when an offer appears. It ignores all other apps, never taps or types for you, and nothing leaves this phone unless you share it yourself.</string>
 </resources>

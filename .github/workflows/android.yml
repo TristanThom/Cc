@@ -24,9 +24,9 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx cap sync android
-      - name: Build debug APK
+      - name: Unit-test and build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew testDebugUnitTest assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: Waypoint-debug-apk

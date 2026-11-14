@@ -51,6 +51,17 @@ final class CaptureStore {
         return names == null ? 0 : names.length;
     }
 
+    /** Keeps the newest MAX_SHOTS screenshots, deleting the oldest. File names are timestamps. */
+    static void trimShots(Context c) {
+        String[] names = shotsDir(c).list();
+        if (names == null || names.length < MAX_SHOTS) return;
+        java.util.Arrays.sort(names);
+        for (int i = 0; i <= names.length - MAX_SHOTS; i++) {
+            //noinspection ResultOfMethodCallIgnored
+            new File(shotsDir(c), names[i]).delete();
+        }
+    }
+
     static synchronized void append(Context c, String jsonLine) {
         try (FileOutputStream out = new FileOutputStream(log(c), true)) {
             out.write(jsonLine.getBytes(StandardCharsets.UTF_8));

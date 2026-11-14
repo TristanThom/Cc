@@ -6,6 +6,7 @@ import { isNative, saveFile, standaloneHtml } from '../lib/native'
 import { adjustBreaks, buildLedger, fmtDate, fmtDateYear, fmtDuration, fmtRate, fmtTime, grossMinutes, ledgerCsv, money, num, shiftLengthMin, toLocalInput } from '../lib/engine'
 import { uid } from '../lib/defaults'
 import { toast, useNow, useStore, useVehicle } from '../lib/store'
+import Offers from './Offers'
 import type { LedgerEntry, Shift, Vehicle } from '../lib/types'
 
 type Filter = 'all' | 'business' | 'gaps'
@@ -16,7 +17,7 @@ export default function History() {
   const platforms = useStore((s) => s.platforms)
   const { rate, unit } = useStore((s) => s.settings)
   const now = useNow(30_000)
-  const [tab, setTab] = useState<'log' | 'tax'>('log')
+  const [tab, setTab] = useState<'log' | 'tax' | 'offers'>('log')
   const [filter, setFilter] = useState<Filter>('all')
   const [app, setApp] = useState('')
   const [q, setQ] = useState('')
@@ -56,6 +57,7 @@ export default function History() {
         options={[
           { value: 'log', label: 'Mileage Log' },
           { value: 'tax', label: 'Tax Summary' },
+          { value: 'offers', label: 'Offers' },
         ]}
       />
 
@@ -106,6 +108,8 @@ export default function History() {
             </p>
           )}
         </>
+      ) : tab === 'offers' ? (
+        <Offers />
       ) : (
         <TaxSummary vehicle={v} ledger={ledger} now={now} onReport={() => setReport(true)} onCsv={exportCsv} />
       )}
