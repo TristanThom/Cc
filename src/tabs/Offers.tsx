@@ -63,8 +63,8 @@ export default function Offers() {
           {(
             [
               ['Offers', String(stats.total), ''],
-              ['Accepted', String(stats.accepted), 'text-go-dark'],
-              ['Declined', String(stats.declined), 'text-stop'],
+              ['Accepted', String(stats.accepted), 'text-go-text'],
+              ['Declined', String(stats.declined), 'text-stop-text'],
               ['Missed', String(stats.missed), ''],
             ] as const
           ).map(([label, value, tone]) => (

@@ -37,7 +37,7 @@ export default function Income() {
         <button
           type="button"
           onClick={() => setPicker(true)}
-          className="flex min-h-16 w-full items-center justify-center gap-2 border-b-2 border-ink bg-bg-2 px-3 active:bg-white"
+          className="flex min-h-16 w-full items-center justify-center gap-2 border-b-2 border-ink bg-bg-2 px-3 active:bg-surface"
           aria-label={`Change period. Showing ${period.label}`}
         >
           <CalendarDays size={20} strokeWidth={2.5} />
@@ -52,16 +52,16 @@ export default function Income() {
         <div className="grid grid-cols-[1fr_1fr_1.3fr] divide-x-2 divide-ink text-center">
           <div className="px-1 py-3">
             <div className="text-[11px] font-extrabold uppercase tracking-wide text-ink-2">Income</div>
-            <div className="num mt-1 text-[clamp(.95rem,4.4vw,1.4rem)] font-black text-go-dark">+{money(totals.income)}</div>
+            <div className="num mt-1 text-[clamp(.95rem,4.4vw,1.4rem)] font-black text-go-text">+{money(totals.income)}</div>
           </div>
           <div className="px-1 py-3">
             <div className="text-[11px] font-extrabold uppercase tracking-wide text-ink-2">Expenses</div>
-            <div className="num mt-1 text-[clamp(.95rem,4.4vw,1.4rem)] font-black text-stop">-{money(totals.expense)}</div>
+            <div className="num mt-1 text-[clamp(.95rem,4.4vw,1.4rem)] font-black text-stop-text">-{money(totals.expense)}</div>
           </div>
-          <div className="bg-emerald-50 px-1 py-3">
+          <div className="bg-go-soft px-1 py-3">
             <div className="text-[11px] font-extrabold uppercase tracking-wide text-ink-2">Net Profit</div>
-            <div className={cx('num mt-1 text-[clamp(.95rem,4.4vw,1.4rem)] font-black', totals.net < 0 ? 'text-stop' : 'text-ink')}>{signedMoney(totals.net).replace('+', '')}</div>
-            <div className="mt-0.5 whitespace-nowrap text-[11px] font-extrabold tabular-nums tracking-tight text-go-dark">Tax Shield: +{money(shield)}</div>
+            <div className={cx('num mt-1 text-[clamp(.95rem,4.4vw,1.4rem)] font-black', totals.net < 0 ? 'text-stop-text' : 'text-ink')}>{signedMoney(totals.net).replace('+', '')}</div>
+            <div className="mt-0.5 whitespace-nowrap text-[11px] font-extrabold tabular-nums tracking-tight text-go-text">Tax Shield: +{money(shield)}</div>
           </div>
         </div>
       </Card>
@@ -91,7 +91,7 @@ export default function Income() {
             Tap <b className="text-ink">Add Transaction</b> to log a payout or expense.
           </p>
         ) : view === 'log' ? (
-          <ul className="divide-y-2 divide-slate-200 border-t-2 border-ink">
+          <ul className="divide-y-2 divide-line border-t-2 border-ink">
             {list.map((t) => (
               <li key={t.id}>
                 <button type="button" onClick={() => setEditing(t)} className="flex min-h-16 w-full items-center gap-3 px-4 py-2 text-left active:bg-bg-2">
@@ -102,7 +102,7 @@ export default function Income() {
                     </span>
                     {t.note && <span className="mt-1 block truncate text-sm font-semibold text-ink-2">{t.note}</span>}
                   </span>
-                  <span className={cx('num shrink-0 text-lg font-black', t.type === 'income' ? 'text-go-dark' : 'text-stop')}>
+                  <span className={cx('num shrink-0 text-lg font-black', t.type === 'income' ? 'text-go-text' : 'text-stop-text')}>
                     {t.type === 'income' ? '+' : '-'}
                     {money(t.amount)}
                   </span>
@@ -154,7 +154,7 @@ function Breakdown({ list, colorOf }: { list: Txn[]; colorOf: (t: Txn) => string
         <div key={g.type}>
           <div className="flex items-baseline justify-between">
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-ink-2">{g.type === 'income' ? 'Income by source' : 'Expenses by category'}</h3>
-            <span className={cx('num text-sm font-black', g.type === 'income' ? 'text-go-dark' : 'text-stop')}>{money(g.total)}</span>
+            <span className={cx('num text-sm font-black', g.type === 'income' ? 'text-go-text' : 'text-stop-text')}>{money(g.total)}</span>
           </div>
           {g.rows.length === 0 && <p className="mt-2 text-sm font-bold text-ink-2">Nothing logged.</p>}
           <ul className="mt-2 space-y-3">
@@ -252,16 +252,16 @@ function PeriodPicker({
                 type="button"
                 onClick={() => onPick(p.start)}
                 aria-current={on}
-                className={cx('flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border-2 border-ink px-3 py-2 text-left', on ? 'bg-ink text-white' : 'bg-white active:bg-bg-2')}
+                className={cx('flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border-2 border-ink px-3 py-2 text-left', on ? 'bg-ink text-on-ink' : 'bg-surface active:bg-bg-2')}
               >
                 <span className="min-w-0">
                   <span className="num block truncate text-sm font-black">{p.label}</span>
-                  <span className={cx('num text-xs font-bold', on ? 'text-white/80' : 'text-ink-2')}>
+                  <span className={cx('num text-xs font-bold', on ? 'text-on-ink/80' : 'text-ink-2')}>
                     {current ? 'Current · ' : ''}
                     {num(miles)} business {unit}
                   </span>
                 </span>
-                <span className={cx('num shrink-0 text-base font-black', on ? 'text-white' : net < 0 ? 'text-stop' : net > 0 ? 'text-go-dark' : 'text-ink-2')}>{net === 0 ? money(0) : signedMoney(net)}</span>
+                <span className={cx('num shrink-0 text-base font-black', on ? 'text-on-ink' : net < 0 ? 'text-stop-text' : net > 0 ? 'text-go-text' : 'text-ink-2')}>{net === 0 ? money(0) : signedMoney(net)}</span>
               </button>
             </li>
           )
@@ -350,7 +350,7 @@ function TxnSheet({ open, target, onClose, vehicleId, defaultTs }: { open: boole
                 onClick={() => (setType(t), setErr(null))}
                 className={cx(
                   'min-h-14 rounded-xl border-2 border-ink text-lg font-black capitalize',
-                  type === t ? (t === 'income' ? 'bg-go-dark text-white' : 'bg-stop text-white') : 'bg-white',
+                  type === t ? (t === 'income' ? 'bg-go-dark text-white' : 'bg-stop text-white') : 'bg-surface',
                 )}
               >
                 {t === 'income' ? '+ Income' : '− Expense'}
@@ -358,12 +358,12 @@ function TxnSheet({ open, target, onClose, vehicleId, defaultTs }: { open: boole
             ))}
           </div>
 
-          <div className={cx('num rounded-xl border-2 border-ink px-4 py-3 text-center text-4xl font-black', type === 'income' ? 'bg-emerald-50 text-go-dark' : 'bg-red-50 text-stop')} aria-live="polite">
+          <div className={cx('num rounded-xl border-2 border-ink px-4 py-3 text-center text-4xl font-black', type === 'income' ? 'bg-go-soft text-go-text' : 'bg-stop-soft text-stop-text')} aria-live="polite">
             {type === 'income' ? '+' : '-'}${amount || '0'}
           </div>
           <div className="grid grid-cols-4 gap-2">
             {CHIPS[type].map((c) => (
-              <button key={c} type="button" onClick={() => (setAmount(String(Math.round(((Number(amount) || 0) + c) * 100) / 100)), setErr(null))} className="num min-h-12 rounded-xl border-2 border-ink bg-bg-2 text-sm font-black active:bg-ink active:text-white">
+              <button key={c} type="button" onClick={() => (setAmount(String(Math.round(((Number(amount) || 0) + c) * 100) / 100)), setErr(null))} className="num min-h-12 rounded-xl border-2 border-ink bg-bg-2 text-sm font-black active:bg-ink active:text-on-ink">
                 +${c}
               </button>
             ))}
@@ -383,7 +383,7 @@ function TxnSheet({ open, target, onClose, vehicleId, defaultTs }: { open: boole
                   type="button"
                   aria-pressed={category === c.name}
                   onClick={() => setCategory(c.name)}
-                  className={cx('flex min-h-12 items-center gap-2 rounded-xl border-2 border-ink px-3 text-left text-sm font-extrabold', category === c.name ? 'bg-ink text-white' : 'bg-white')}
+                  className={cx('flex min-h-12 items-center gap-2 rounded-xl border-2 border-ink px-3 text-left text-sm font-extrabold', category === c.name ? 'bg-ink text-on-ink' : 'bg-surface')}
                 >
                   <span className="size-3 shrink-0 rounded-full border border-white" style={{ background: c.color }} />
                   <span className="truncate">{c.name}</span>
@@ -430,7 +430,7 @@ function CategoryManager({ type }: { type: TxnType }) {
               {c.hidden ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
             {!c.builtin && (
-              <button type="button" onClick={() => setDel(c.id)} aria-label={`Delete ${c.name}`} className="grid size-12 place-items-center rounded-lg text-stop active:bg-red-50">
+              <button type="button" onClick={() => setDel(c.id)} aria-label={`Delete ${c.name}`} className="grid size-12 place-items-center rounded-lg text-stop-text active:bg-stop-soft">
                 <Trash2 size={20} />
               </button>
             )}

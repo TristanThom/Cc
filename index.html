@@ -10,6 +10,16 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>Waypoint</title>
+    <script>
+      // Set the theme before first paint so a dark-mode launch never flashes white.
+      // Mirrors resolveTheme() in src/lib/theme.ts.
+      try {
+        var saved = JSON.parse(localStorage.getItem('waypoint-v1') || '{}')
+        var mode = (saved.state && saved.state.settings && saved.state.settings.theme) || 'system'
+        var dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

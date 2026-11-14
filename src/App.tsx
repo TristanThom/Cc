@@ -8,6 +8,7 @@ import { closeTop, isNative } from './lib/native'
 import { useOnline } from './lib/pwa'
 import { useStore, useToast, useVehicle } from './lib/store'
 import { useSwipeNav } from './lib/swipe'
+import { useTheme } from './lib/theme'
 import Alerts from './tabs/Alerts'
 import History from './tabs/History'
 import Home from './tabs/Home'
@@ -29,6 +30,7 @@ export default function App() {
   const onboarded = useStore((s) => s.onboarded)
   const hasVehicle = useStore((s) => s.vehicles.length > 0)
   const online = useOnline()
+  useTheme()
   const [[tab, dir], setNav] = useState<[number, number]>([0, 0])
   const goTab = (i: number) => setNav(([cur]) => [i, i > cur ? 1 : -1])
   const alertCount = useAlertCount()
@@ -76,9 +78,9 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col">
-      <div aria-hidden className="shrink-0 bg-ink" style={{ height: 'var(--sat)' }} />
+      <div aria-hidden className="shrink-0 bg-brand" style={{ height: 'var(--sat)' }} />
       {!online && (
-        <div role="status" className="flex shrink-0 items-center justify-center gap-2 border-b-2 border-ink bg-amber px-3 py-1.5 text-sm font-extrabold">
+        <div role="status" className="flex shrink-0 items-center justify-center gap-2 border-b-2 border-ink bg-amber px-3 text-brand py-1.5 text-sm font-extrabold">
           <WifiOff size={16} strokeWidth={3} /> Offline — everything still works and saves on this device
         </div>
       )}
@@ -110,7 +112,7 @@ export default function App() {
       </main>
 
       {!setup && <BottomNav tab={tab} goTab={goTab} alertCount={alertCount} />}
-      <div aria-hidden className="shrink-0 bg-ink" style={{ height: 'var(--sab)' }} />
+      <div aria-hidden className="shrink-0 bg-brand" style={{ height: 'var(--sab)' }} />
       <Toast />
     </div>
   )
@@ -129,10 +131,10 @@ function useAlertCount() {
 
 function Header({ tab, goTab, alertCount }: { tab: number; goTab: (i: number) => void; alertCount: number }) {
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b-2 border-ink bg-white">
+    <header className="sticky top-0 z-30 shrink-0 border-b-2 border-ink bg-surface">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
         <div className="flex items-center gap-2 text-xl font-black tracking-tight">
-          <span className="num rounded-md bg-ink px-1.5 py-0.5 text-base text-amber">00</span>
+          <span className="num rounded-md bg-brand px-1.5 py-0.5 text-base text-amber">00</span>
           Waypoint
         </div>
         <nav className="ml-4 hidden flex-1 gap-1 md:flex" aria-label="Sections">
@@ -142,7 +144,7 @@ function Header({ tab, goTab, alertCount }: { tab: number; goTab: (i: number) =>
               type="button"
               onClick={() => goTab(i)}
               aria-current={tab === i ? 'page' : undefined}
-              className={cx('relative min-h-12 rounded-xl px-3 text-sm font-extrabold', tab === i ? 'bg-ink text-white' : 'text-ink-2 hover:bg-bg-2')}
+              className={cx('relative min-h-12 rounded-xl px-3 text-sm font-extrabold', tab === i ? 'bg-ink text-on-ink' : 'text-ink-2 hover:bg-bg-2')}
             >
               {t.label}
               {t.id === 'alerts' && alertCount > 0 && <span className="num ml-1.5 rounded-full bg-stop px-1.5 text-xs text-white">{alertCount}</span>}
@@ -186,7 +188,7 @@ function VehicleSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Vehicle: ${v.model}. Switch vehicle`}
-        className="flex min-h-12 max-w-[11rem] items-center gap-2 rounded-xl border-2 border-ink bg-ink px-3 text-sm font-black text-white"
+        className="flex min-h-12 max-w-[11rem] items-center gap-2 rounded-xl border-2 border-ink bg-ink px-3 text-sm font-black text-on-ink"
       >
         <span className="truncate">{label(v)}</span>
         <ChevronDown size={18} strokeWidth={3} className={cx('shrink-0 transition-transform', open && 'rotate-180')} />
@@ -200,14 +202,14 @@ function VehicleSwitcher() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.12 }}
-            className="absolute right-0 top-full z-40 mt-2 w-56 origin-top-right overflow-hidden rounded-xl border-2 border-ink bg-white shadow-hard"
+            className="absolute right-0 top-full z-40 mt-2 w-56 origin-top-right overflow-hidden rounded-xl border-2 border-ink bg-surface shadow-hard"
           >
             {vehicles.map((x) => (
               <li key={x.id} role="option" aria-selected={x.id === v.id}>
                 <button
                   type="button"
                   onClick={() => (select(x.id), setOpen(false))}
-                  className={cx('flex min-h-14 w-full items-center justify-between gap-2 px-4 text-left text-base font-black', x.id === v.id ? 'bg-amber' : 'active:bg-bg-2')}
+                  className={cx('flex min-h-14 w-full items-center justify-between gap-2 px-4 text-left text-base font-black', x.id === v.id ? 'bg-amber text-brand' : 'active:bg-bg-2')}
                 >
                   <span className="truncate">{label(x)}</span>
                   {x.id === v.id && <Check size={20} strokeWidth={4} className="shrink-0" />}
@@ -231,7 +233,7 @@ function BottomNav({ tab, goTab, alertCount }: { tab: number; goTab: (i: number)
   const hasNext = win < TABS.length - VISIBLE
 
   return (
-    <nav aria-label="Sections" className="relative shrink-0 border-t-2 border-ink bg-white md:hidden">
+    <nav aria-label="Sections" className="relative shrink-0 border-t-2 border-ink bg-surface md:hidden">
       <div className="overflow-hidden">
         <motion.div
           className="flex touch-pan-y"
@@ -263,24 +265,24 @@ function BottomNav({ tab, goTab, alertCount }: { tab: number; goTab: (i: number)
                 draggable={false}
               >
                 {on && <motion.span layoutId="nav-pill" className="absolute inset-x-2 inset-y-1.5 rounded-xl bg-ink" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
-                <span className={cx('relative', on ? 'text-amber' : 'text-ink-2')}>
+                <span className={cx('relative', on ? 'text-on-ink-accent' : 'text-ink-2')}>
                   <Icon size={24} strokeWidth={2.5} />
                   {t.id === 'alerts' && alertCount > 0 && (
                     <span className="num absolute -right-3 -top-1.5 grid min-w-5 place-items-center rounded-full border-2 border-white bg-stop px-1 text-[10px] font-black leading-4 text-white">{alertCount}</span>
                   )}
                 </span>
-                <span className={cx('relative text-xs font-extrabold', on ? 'text-white' : 'text-ink-2')}>{t.label}</span>
+                <span className={cx('relative text-xs font-extrabold', on ? 'text-on-ink' : 'text-ink-2')}>{t.label}</span>
               </button>
             )
           })}
         </motion.div>
       </div>
       {/* edge hints: more tabs this way */}
-      {hasPrev && <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-white to-transparent" />}
-      {hasNext && <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-white to-transparent" />}
+      {hasPrev && <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-surface to-transparent" />}
+      {hasNext && <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-surface to-transparent" />}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0.5 flex justify-center gap-1">
         {TABS.map((t, i) => (
-          <span key={t.id} className={cx('h-1 rounded-full transition-all', i >= win && i < win + VISIBLE ? 'w-3 bg-ink' : 'w-1 bg-slate-300')} />
+          <span key={t.id} className={cx('h-1 rounded-full transition-all', i >= win && i < win + VISIBLE ? 'w-3 bg-ink' : 'w-1 bg-line')} />
         ))}
       </div>
     </nav>

@@ -11,11 +11,11 @@ export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Bool
 
 type Tone = 'amber' | 'go' | 'ink' | 'ghost' | 'danger'
 const TONES: Record<Tone, string> = {
-  amber: 'bg-amber text-ink border-ink shadow-hard active:translate-y-[3px] active:shadow-none',
+  amber: 'bg-amber text-brand border-ink shadow-hard active:translate-y-[3px] active:shadow-none',
   go: 'bg-go-dark text-white border-ink shadow-hard active:translate-y-[3px] active:shadow-none',
-  ink: 'bg-ink text-white border-ink active:bg-ink-2',
-  ghost: 'bg-white text-ink border-ink active:bg-bg-2',
-  danger: 'bg-white text-stop border-stop active:bg-red-50',
+  ink: 'bg-ink text-on-ink border-ink active:bg-ink-2',
+  ghost: 'bg-surface text-ink border-ink active:bg-bg-2',
+  danger: 'bg-surface text-stop-text border-stop active:bg-stop-soft',
 }
 
 export function Btn({
@@ -42,7 +42,7 @@ export function Btn({
 }
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <section className={cx('rounded-2xl border-2 border-ink bg-white', className)}>{children}</section>
+  return <section className={cx('rounded-2xl border-2 border-ink bg-surface', className)}>{children}</section>
 }
 
 export function Segmented<T extends string>({
@@ -69,7 +69,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={cx(
             'min-h-12 flex-1 rounded-lg px-2 text-sm font-extrabold transition-colors',
-            value === o.value ? 'bg-ink text-white' : 'text-ink-2',
+            value === o.value ? 'bg-ink text-on-ink' : 'text-ink-2',
           )}
         >
           {o.label}
@@ -90,12 +90,12 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 }
 
 export const inputCls =
-  'w-full min-h-12 rounded-xl border-2 border-ink bg-white px-3 text-base font-bold text-ink placeholder:text-slate-400 placeholder:font-semibold'
+  'w-full min-h-12 rounded-xl border-2 border-ink bg-surface px-3 text-base font-bold text-ink placeholder:text-slate-400 placeholder:font-semibold'
 
 export function Pill({ color, children }: { color: string; children: ReactNode }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-extrabold">
-      <span className="size-2.5 shrink-0 rounded-full" style={{ background: color }} />
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border-2 border-ink bg-surface px-2.5 py-0.5 text-xs font-extrabold">
+      <span className="size-2.5 shrink-0 rounded-full ring-1 ring-ink/40" style={{ background: color }} />
       <span className="truncate">{children}</span>
     </span>
   )
@@ -104,7 +104,7 @@ export function Pill({ color, children }: { color: string; children: ReactNode }
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null
   return (
-    <p role="alert" className="rounded-lg border-2 border-stop bg-red-50 px-3 py-2 text-sm font-bold text-stop">
+    <p role="alert" className="rounded-lg border-2 border-stop bg-stop-soft px-3 py-2 text-sm font-bold text-stop-text">
       {children}
     </p>
   )
@@ -147,7 +147,7 @@ export function Sheet({
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div
-            className="absolute inset-0 bg-ink/70"
+            className="absolute inset-0 bg-black/70"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -155,7 +155,7 @@ export function Sheet({
           />
           <motion.div
             className={cx(
-              'relative flex max-h-[94dvh] w-full flex-col rounded-t-3xl border-2 border-b-0 border-ink bg-white sm:rounded-3xl sm:border-b-2',
+              'relative flex max-h-[94dvh] w-full flex-col rounded-t-3xl border-2 border-b-0 border-ink bg-surface sm:rounded-3xl sm:border-b-2',
               wide ? 'sm:max-w-3xl' : 'sm:max-w-md',
             )}
             initial={{ y: '100%' }}
@@ -250,8 +250,8 @@ export function Keypad({ value, onChange, maxLen = 7, decimal, fresh }: { value:
           onClick={() => press(k)}
           aria-label={k === 'back' ? 'Backspace' : k === 'clear' ? 'Clear' : k === '.' ? 'Decimal point' : k}
           className={cx(
-            'num grid min-h-14 place-items-center rounded-xl border-2 border-ink text-2xl font-black active:bg-ink active:text-white',
-            k === 'clear' || k === 'back' ? 'bg-bg-2 text-base' : 'bg-white',
+            'num grid min-h-14 place-items-center rounded-xl border-2 border-ink text-2xl font-black active:bg-ink active:text-on-ink',
+            k === 'clear' || k === 'back' ? 'bg-bg-2 text-base' : 'bg-surface',
           )}
         >
           {k === 'back' ? <Delete size={26} strokeWidth={2.5} /> : k === 'clear' ? 'CLEAR' : k}
@@ -276,7 +276,7 @@ export function BreakStepper({
 }) {
   const btn = cx(
     'num inline-flex min-h-12 min-w-[4.5rem] items-center justify-center gap-0.5 rounded-xl border-2 px-2 text-sm font-black disabled:opacity-40',
-    dark ? 'border-white bg-white/10 text-white active:bg-white active:text-go-dark' : 'border-ink bg-white text-ink active:bg-ink active:text-white',
+    dark ? 'border-white bg-white/10 text-white active:bg-white active:text-go-dark' : 'border-ink bg-surface text-ink active:bg-ink active:text-on-ink',
   )
   return (
     <div className="flex items-center gap-2" role="group" aria-label="Break time">
@@ -306,7 +306,7 @@ export function OdometerDrum({ value, digits = 6, size = 'lg', dim }: { value: n
   const str = String(Math.max(0, Math.round(value))).padStart(digits, '0').slice(-Math.max(digits, String(Math.round(value)).length))
   return (
     <div
-      className={cx('num inline-flex gap-[3px] rounded-xl bg-ink p-1.5 font-black transition-opacity', dim && 'opacity-45', size === 'lg' ? 'text-[clamp(2.2rem,11vw,3.75rem)]' : 'text-3xl')}
+      className={cx('num inline-flex gap-[3px] rounded-xl bg-brand p-1.5 font-black transition-opacity', dim && 'opacity-45', size === 'lg' ? 'text-[clamp(2.2rem,11vw,3.75rem)]' : 'text-3xl')}
       role="img"
       aria-label={`Odometer ${Math.round(value).toLocaleString()}`}
     >
@@ -315,7 +315,7 @@ export function OdometerDrum({ value, digits = 6, size = 'lg', dim }: { value: n
         return (
           <span
             key={str.length - i}
-            className={cx('relative block w-[0.78em] overflow-hidden rounded-md', last ? 'bg-amber text-ink' : 'bg-white text-ink')}
+            className={cx('relative block w-[0.78em] overflow-hidden rounded-md', last ? 'bg-amber text-brand' : 'bg-white text-brand')}
             style={{ height: `${DIGIT_H}em` }}
           >
             <span
@@ -329,7 +329,7 @@ export function OdometerDrum({ value, digits = 6, size = 'lg', dim }: { value: n
               ))}
             </span>
             {/* drum shading */}
-            <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink/25 via-transparent to-ink/25" />
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand/25 via-transparent to-brand/25" />
           </span>
         )
       })}
@@ -350,7 +350,7 @@ export function Swatches({ value, onChange }: { value: string; onChange: (c: str
           aria-checked={value === c}
           aria-label={c}
           onClick={() => onChange(c)}
-          className={cx('size-12 rounded-xl border-2 border-ink', value === c && 'ring-4 ring-ink ring-offset-2')}
+          className={cx('size-12 rounded-xl border-2 border-ink', value === c && 'ring-4 ring-ink ring-offset-2 ring-offset-surface')}
           style={{ background: c }}
         />
       ))}

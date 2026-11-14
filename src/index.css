@@ -10,15 +10,46 @@
   --color-go: #10b981;
   --color-go-dark: #15803d;
   --color-stop: #b91c1c;
+  /* Text sitting on an ink fill, and its accent; both flip with the theme. */
+  --color-on-ink: #ffffff;
+  --color-on-ink-accent: #f59e0b;
+  --color-line: #e2e8f0;
+  --color-go-text: #15803d;
+  --color-go-soft: #ecfdf5;
+  --color-stop-text: #b91c1c;
+  --color-stop-soft: #fef2f2;
+  /* Fixed dark used for the logo, odometer drum and text on amber; never flips. */
+  --color-brand: #0f172a;
+  --color-hard-shadow: #0f172a;
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
-  --shadow-hard: 0 3px 0 0 #0f172a;
+  --shadow-hard: 0 3px 0 0 var(--color-hard-shadow);
 }
 
 :root {
   /* Capacitor injects --safe-area-inset-* on Android; browsers provide env(). */
   --sat: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   --sab: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+/* Dark theme: near-black background with high-contrast text for a mounted phone at night.
+   Screen only, so printed reports always use the light palette. */
+@media screen {
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --color-ink: #f1f5f9;
+    --color-ink-2: #cbd5e1;
+    --color-surface: #131c2e;
+    --color-bg: #070b14;
+    --color-bg-2: #1f2a3d;
+    --color-on-ink: #0f172a;
+    --color-on-ink-accent: #b45309;
+    --color-line: #334155;
+    --color-go-text: #4ade80;
+    --color-go-soft: #072a1c;
+    --color-stop-text: #f87171;
+    --color-stop-soft: #3a1216;
+    --color-hard-shadow: #000000;
+  }
 }
 html,
 body,

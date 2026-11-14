@@ -66,14 +66,14 @@ function SetupGuide({ odo, onStart }: { odo: number; onStart: () => void }) {
     ['Start your first shift', 'Confirm the odometer — every mile from here is tracked.', false],
   ] as const
   return (
-    <Card className="border-go-dark bg-emerald-50 p-4">
-      <h2 className="flex items-center gap-2 text-lg font-black text-go-dark">
+    <Card className="border-go-dark bg-go-soft p-4">
+      <h2 className="flex items-center gap-2 text-lg font-black text-go-text">
         <Rocket size={22} strokeWidth={2.5} /> First-Time Setup Ready
       </h2>
       <ol className="mt-3 space-y-2">
         {steps.map(([t, d, done], i) => (
           <li key={t} className="flex items-start gap-3">
-            <span className={cx('num grid size-7 shrink-0 place-items-center rounded-full border-2 border-ink text-sm font-black', done ? 'bg-go-dark text-white' : 'bg-amber')}>
+            <span className={cx('num grid size-7 shrink-0 place-items-center rounded-full border-2 border-ink text-sm font-black', done ? 'bg-go-dark text-white' : 'bg-amber text-brand')}>
               {done ? <Check size={16} strokeWidth={4} /> : i + 1}
             </span>
             <span className="text-sm font-semibold text-ink-2">
@@ -120,7 +120,7 @@ function ActiveShiftBar({ shift, onEnd }: { shift: Shift; onEnd: () => void }) {
       <button
         type="button"
         onClick={onEnd}
-        className="mt-3 flex min-h-16 w-full items-center justify-center gap-2 rounded-xl border-2 border-ink bg-white text-2xl font-black text-ink active:bg-bg-2"
+        className="mt-3 flex min-h-16 w-full items-center justify-center gap-2 rounded-xl border-2 border-ink bg-surface text-2xl font-black text-ink active:bg-bg-2"
       >
         <Square size={22} strokeWidth={3} fill="currentColor" /> End Shift
       </button>
@@ -160,9 +160,9 @@ function MetricsCard({ vehicle }: { vehicle: Vehicle }) {
             <span className="ml-1 text-base text-ink-2">{unit}</span>
           </div>
         </div>
-        <div className="bg-emerald-50 p-4">
-          <div className="text-xs font-extrabold uppercase tracking-wide text-go-dark">Est. Tax Write-Off</div>
-          <div className="num mt-1 text-3xl font-black text-go-dark">{money(t.business * rate)}</div>
+        <div className="bg-go-soft p-4">
+          <div className="text-xs font-extrabold uppercase tracking-wide text-go-text">Est. Tax Write-Off</div>
+          <div className="num mt-1 text-3xl font-black text-go-text">{money(t.business * rate)}</div>
         </div>
       </div>
       <p className="border-t-2 border-ink px-4 py-2 text-xs font-bold text-ink-2">{period.mode === 'week' ? weekLabel(period) : period.label}</p>
@@ -189,7 +189,7 @@ export function PlatformGrid({ locked, bare }: { locked?: boolean; bare?: boolea
           type="button"
           onClick={() => setAllPlatforms(!allOn)}
           aria-pressed={allOn}
-          className={cx('inline-flex min-h-12 items-center gap-1.5 rounded-xl border-2 border-ink px-3 text-sm font-extrabold', allOn ? 'bg-ink text-white' : 'bg-white')}
+          className={cx('inline-flex min-h-12 items-center gap-1.5 rounded-xl border-2 border-ink px-3 text-sm font-extrabold', allOn ? 'bg-ink text-on-ink' : 'bg-surface')}
         >
           <CheckCheck size={18} strokeWidth={3} /> Select All
         </button>
@@ -204,11 +204,11 @@ export function PlatformGrid({ locked, bare }: { locked?: boolean; bare?: boolea
             onClick={() => togglePlatform(p.id)}
             className={cx(
               'flex min-h-14 items-center gap-2 rounded-xl border-2 border-ink px-3 text-left text-sm font-extrabold transition-colors',
-              p.active ? 'text-white' : 'bg-white text-ink',
+              p.active ? 'text-white' : 'bg-surface text-ink',
             )}
             style={p.active ? { background: p.color, textShadow: '0 1px 2px rgba(0,0,0,.55)' } : undefined}
           >
-            <span className={cx('grid size-6 shrink-0 place-items-center rounded-md border-2', p.active ? 'border-white bg-white text-ink' : 'border-ink')} style={p.active ? undefined : { background: p.color }}>
+            <span className={cx('grid size-6 shrink-0 place-items-center rounded-md border-2', p.active ? 'border-white bg-surface text-ink' : 'border-ink')} style={p.active ? undefined : { background: p.color }}>
               {p.active && <Check size={16} strokeWidth={4} />}
             </span>
             <span className="truncate">{p.name}</span>
@@ -217,7 +217,7 @@ export function PlatformGrid({ locked, bare }: { locked?: boolean; bare?: boolea
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="flex min-h-14 items-center justify-center gap-1 rounded-xl border-2 border-dashed border-ink bg-bg-2 text-sm font-extrabold active:bg-white"
+          className="flex min-h-14 items-center justify-center gap-1 rounded-xl border-2 border-dashed border-ink bg-bg-2 text-sm font-extrabold active:bg-surface"
         >
           <Plus size={18} strokeWidth={3} /> Add
         </button>
@@ -264,7 +264,7 @@ export function PlatformGrid({ locked, bare }: { locked?: boolean; bare?: boolea
                 <li key={p.id} className="flex items-center gap-2 rounded-xl border-2 border-ink p-1 pl-3">
                   <span className="size-4 rounded-full border-2 border-ink" style={{ background: p.color }} />
                   <span className="flex-1 truncate font-extrabold">{p.name}</span>
-                  <button type="button" aria-label={`Remove ${p.name}`} onClick={() => removePlatform(p.id)} className="grid size-12 place-items-center rounded-lg text-stop active:bg-red-50">
+                  <button type="button" aria-label={`Remove ${p.name}`} onClick={() => removePlatform(p.id)} className="grid size-12 place-items-center rounded-lg text-stop-text active:bg-stop-soft">
                     <Trash2 size={20} />
                   </button>
                 </li>
@@ -361,11 +361,11 @@ function OdoSheet({ mode, setMode, vehicle, active }: { mode: OdoMode | null; se
           ) : !Number.isFinite(delta) ? (
             <span className="text-ink-2">Enter the reading on your dash</span>
           ) : delta < 0 ? (
-            <span className="text-stop">
+            <span className="text-stop-text">
               Below {ending ? 'shift start' : 'last logged reading'} ({num(ending ? active.startOdo : floor)})
             </span>
           ) : ending ? (
-            <span className="text-go-dark">
+            <span className="text-go-text">
               {num(delta)} business {unit} · {money(delta * rate)} write-off
             </span>
           ) : delta === 0 ? (
@@ -404,7 +404,7 @@ function OdoSheet({ mode, setMode, vehicle, active }: { mode: OdoMode | null; se
         <>
           <div className="rounded-xl border-2 border-ink p-3">
             <BreakStepper minutes={active.breakMin} onBump={(d) => bumpBreak(active.id, d)} />
-            <div className="mt-2 flex items-center justify-between border-t-2 border-dashed border-slate-300 pt-2 text-sm font-bold">
+            <div className="mt-2 flex items-center justify-between border-t-2 border-dashed border-line pt-2 text-sm font-bold">
               <span className="text-ink-2">
                 Elapsed <span className="num">{fmtDuration(grossMinutes(active, now))}</span>
               </span>

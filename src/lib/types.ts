@@ -70,9 +70,13 @@ export interface MaintItem {
   lastServiceOdo: number
 }
 
+export type ThemeMode = 'system' | 'light' | 'dark'
+
 export interface Settings {
   rate: number
   unit: Unit
+  /** Missing in data saved before dark mode existed; treated as "system". */
+  theme?: ThemeMode
 }
 
 export interface AppData {

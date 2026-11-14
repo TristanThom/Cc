@@ -8,7 +8,7 @@ import type { MaintItem } from '../lib/types'
 
 const STYLE: Record<MaintStatus, { bar: string; chip: string; label: string; border: string }> = {
   ok: { bar: 'bg-go-dark', chip: 'bg-go-dark text-white', label: 'OK', border: 'border-ink' },
-  soon: { bar: 'bg-amber', chip: 'bg-amber text-ink', label: 'Due Soon', border: 'border-ink' },
+  soon: { bar: 'bg-amber', chip: 'bg-amber text-brand', label: 'Due Soon', border: 'border-ink' },
   overdue: { bar: 'bg-stop', chip: 'bg-stop text-white', label: 'Overdue', border: 'border-stop' },
 }
 const ORDER: Record<MaintStatus, number> = { overdue: 0, soon: 1, ok: 2 }
@@ -55,7 +55,7 @@ export default function Alerts() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="flex items-center gap-2 truncate text-lg font-black">
-                      {st.status === 'ok' ? <CheckCircle2 size={20} className="shrink-0 text-go-dark" strokeWidth={2.5} /> : <AlertTriangle size={20} className={cx('shrink-0', st.status === 'overdue' ? 'text-stop' : 'text-amber')} strokeWidth={2.5} />}
+                      {st.status === 'ok' ? <CheckCircle2 size={20} className="shrink-0 text-go-text" strokeWidth={2.5} /> : <AlertTriangle size={20} className={cx('shrink-0', st.status === 'overdue' ? 'text-stop-text' : 'text-amber')} strokeWidth={2.5} />}
                       <span className="truncate">{m.name}</span>
                     </h3>
                     <span className={cx('mt-1 inline-block rounded-full border-2 border-ink px-2 py-0.5 text-[11px] font-black uppercase tracking-wide', s.chip)}>{s.label}</span>
@@ -70,7 +70,7 @@ export default function Alerts() {
                       {num(st.remaining)} <span className="text-sm text-ink-2">{unit} left</span>
                     </>
                   ) : (
-                    <span className="text-stop">
+                    <span className="text-stop-text">
                       {num(-st.remaining)} <span className="text-sm">{unit} overdue</span>
                     </span>
                   )}
@@ -161,7 +161,7 @@ function MaintSheet({ open, item, vehicleId, odo, onClose }: { open: boolean; it
         {!item && (
           <div className="flex flex-wrap gap-2">
             {MAINT_PRESETS.map((p) => (
-              <button key={p.name} type="button" onClick={() => (setName(p.name), setInterval(String(p.interval)), setNotify(String(p.notifyBefore)))} className="min-h-12 rounded-xl border-2 border-ink bg-bg-2 px-3 text-sm font-extrabold active:bg-ink active:text-white">
+              <button key={p.name} type="button" onClick={() => (setName(p.name), setInterval(String(p.interval)), setNotify(String(p.notifyBefore)))} className="min-h-12 rounded-xl border-2 border-ink bg-bg-2 px-3 text-sm font-extrabold active:bg-ink active:text-on-ink">
                 {p.name}
               </button>
             ))}

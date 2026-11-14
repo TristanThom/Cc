@@ -51,20 +51,20 @@ export default function Onboarding() {
   }
 
   const explain = [
-    { Icon: Play, bg: 'bg-amber', t: 'Start & end shifts', d: 'Enter the odometer when you go online and again when you stop. That’s the only logging you do.' },
+    { Icon: Play, bg: 'bg-amber text-brand', t: 'Start & end shifts', d: 'Enter the odometer when you go online and again when you stop. That’s the only logging you do.' },
     { Icon: UserRound, bg: 'bg-bg-2', t: 'Personal miles fill themselves in', d: 'Anything driven between one shift’s end and the next shift’s start is auto-logged as non-deductible Personal miles.' },
-    { Icon: ShieldCheck, bg: 'bg-emerald-100', t: 'Unbroken chain, live write-off', d: `Zero unaccounted ${unit === 'mi' ? 'miles' : 'kilometres'}. Business distance × ${fmtRate(rate)}/${unit} updates your tax write-off instantly.` },
+    { Icon: ShieldCheck, bg: 'bg-go-soft', t: 'Unbroken chain, live write-off', d: `Zero unaccounted ${unit === 'mi' ? 'miles' : 'kilometres'}. Business distance × ${fmtRate(rate)}/${unit} updates your tax write-off instantly.` },
   ]
 
   return (
     <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 pb-4 pt-5">
       <div className="mb-1 flex items-center gap-2 text-2xl font-black">
-        <span className="num rounded-lg bg-ink px-2 py-0.5 text-amber">00</span> Welcome to Waypoint
+        <span className="num rounded-lg bg-brand px-2 py-0.5 text-amber">00</span> Welcome to Waypoint
       </div>
       <p className="text-sm font-semibold text-ink-2">Three quick steps and every mile is accounted for.</p>
       <ol className="my-4 grid grid-cols-3 gap-2" aria-label="Setup progress">
         {STEPS.map((s, i) => (
-          <li key={s} aria-current={i === step ? 'step' : undefined} className={cx('rounded-xl border-2 border-ink px-2 py-2 text-center text-xs font-extrabold', i < step ? 'bg-go-dark text-white' : i === step ? 'bg-amber' : 'bg-white text-ink-2')}>
+          <li key={s} aria-current={i === step ? 'step' : undefined} className={cx('rounded-xl border-2 border-ink px-2 py-2 text-center text-xs font-extrabold', i < step ? 'bg-go-dark text-white' : i === step ? 'bg-amber text-brand' : 'bg-surface text-ink-2')}>
             <span className="num">{i + 1}.</span> {s}
           </li>
         ))}
@@ -78,7 +78,7 @@ export default function Onboarding() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: dir * -60, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
-            className="space-y-4 rounded-2xl border-2 border-ink bg-white p-4"
+            className="space-y-4 rounded-2xl border-2 border-ink bg-surface p-4"
           >
             {step === 0 && (
               <>
@@ -114,10 +114,10 @@ export default function Onboarding() {
                 </ul>
                 <div className="num flex items-center gap-1 text-[11px] font-black" aria-hidden>
                   <span className="flex-[3] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
-                  <span className="flex-[3] rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">PERSONAL</span>
-                  <span className="flex-[4] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
-                  <span className="flex-[3] rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">PERSONAL</span>
-                  <span className="flex-[2] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
+                  <span className="flex-[4] rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">PERSONAL</span>
+                  <span className="flex-[3] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
+                  <span className="flex-[4] rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">PERSONAL</span>
+                  <span className="flex-[3] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
                 </div>
                 <p className="num text-center text-sm font-extrabold">
                   Chain starts at {num(Number(f.startOdo) || 0)} {unit}

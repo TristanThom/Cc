@@ -1,4 +1,4 @@
-import { Car, Check, DatabaseBackup, Download, FlaskConical, Pencil, Plus, Smartphone, Trash2, Upload } from 'lucide-react'
+import { Car, Check, DatabaseBackup, Download, FlaskConical, Moon, Pencil, Plus, Smartphone, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Segmented, Sheet } from '../components/ui'
 import { currentOdo, defaultRate, fmtRate, num } from '../lib/engine'
@@ -13,7 +13,7 @@ export default function Settings() {
   const activeId = useStore((s) => s.activeVehicleId)
   const shifts = useStore((s) => s.shifts)
   const settings = useStore((s) => s.settings)
-  const { selectVehicle, deleteVehicle, setRate, setUnit, loadDemo, clearAll, restore } = useStore.getState()
+  const { selectVehicle, deleteVehicle, setRate, setUnit, setTheme, loadDemo, clearAll, restore } = useStore.getState()
   const [form, setForm] = useState<{ v: Vehicle | null; key: number }>({ v: null, key: 0 })
   const [formOpen, setFormOpen] = useState(false)
   const [del, setDel] = useState<Vehicle | null>(null)
@@ -44,13 +44,13 @@ export default function Settings() {
         <h2 className="flex items-center gap-2 border-b-2 border-ink bg-bg-2 px-4 py-3 text-base font-black">
           <Car size={20} strokeWidth={2.5} /> Garage
         </h2>
-        <ul className="divide-y-2 divide-slate-200">
+        <ul className="divide-y-2 divide-line">
           {vehicles.map((v) => {
             const on = v.id === activeId
             return (
               <li key={v.id} className="flex items-center gap-2 p-2">
                 <button type="button" onClick={() => selectVehicle(v.id)} aria-pressed={on} aria-label={`Switch to ${v.model}`} className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl px-2 text-left active:bg-bg-2">
-                  <span className={cx('grid size-8 shrink-0 place-items-center rounded-full border-2 border-ink', on ? 'bg-go-dark text-white' : 'bg-white')}>{on && <Check size={18} strokeWidth={4} />}</span>
+                  <span className={cx('grid size-8 shrink-0 place-items-center rounded-full border-2 border-ink', on ? 'bg-go-dark text-white' : 'bg-surface')}>{on && <Check size={18} strokeWidth={4} />}</span>
                   <span className="min-w-0">
                     <span className="block truncate text-base font-black">{[v.year, v.make, v.model].filter(Boolean).join(' ')}</span>
                     <span className="num block text-xs font-bold text-ink-2">
@@ -61,7 +61,7 @@ export default function Settings() {
                 <button type="button" onClick={() => showForm(v)} aria-label={`Edit ${v.model}`} className="grid size-12 shrink-0 place-items-center rounded-xl border-2 border-ink active:bg-bg-2">
                   <Pencil size={18} strokeWidth={2.5} />
                 </button>
-                <button type="button" onClick={() => setDel(v)} aria-label={`Delete ${v.model}`} className="grid size-12 shrink-0 place-items-center rounded-xl border-2 border-stop text-stop active:bg-red-50">
+                <button type="button" onClick={() => setDel(v)} aria-label={`Delete ${v.model}`} className="grid size-12 shrink-0 place-items-center rounded-xl border-2 border-stop text-stop-text active:bg-stop-soft">
                   <Trash2 size={18} strokeWidth={2.5} />
                 </button>
               </li>
@@ -76,6 +76,23 @@ export default function Settings() {
       </Card>
 
       <div className="min-w-0 space-y-4">
+        <Card className="space-y-3 p-4">
+          <h2 className="flex items-center gap-2 text-base font-black">
+            <Moon size={20} strokeWidth={2.5} /> Appearance
+          </h2>
+          <Segmented
+            label="Theme"
+            value={settings.theme ?? 'system'}
+            onChange={setTheme}
+            options={[
+              { value: 'system', label: 'System' },
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
+            ]}
+          />
+          <p className="text-xs font-semibold text-ink-2">System follows your phone's light or dark setting. Dark is easier on the eyes for night driving.</p>
+        </Card>
+
         <Card className="space-y-4 p-4">
           <h2 className="text-base font-black">Mileage rate &amp; units</h2>
           <Field label="Distance unit" hint="Odometer readings are kept exactly as entered; switching units converts only the rate.">

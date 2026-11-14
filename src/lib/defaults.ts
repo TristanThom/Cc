@@ -57,7 +57,7 @@ export const emptyData = (): AppData => ({
   txns: [],
   categories: defaultCategories(),
   maint: [],
-  settings: { rate: 0.7, unit: 'mi' },
+  settings: { rate: 0.7, unit: 'mi', theme: 'system' },
   onboarded: false,
   isDemo: false,
 })

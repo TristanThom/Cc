@@ -130,9 +130,9 @@ const chainEnd = (ledger: LedgerEntry[]) => {
 function OdoRange({ start, end }: { start: number; end: number | null }) {
   return (
     <div className="num flex items-center gap-2 text-sm font-black">
-      <span className="rounded-md bg-ink px-2 py-1 text-white">{num(start)}</span>
+      <span className="rounded-md bg-ink px-2 py-1 text-on-ink">{num(start)}</span>
       <span className="h-0.5 flex-1 bg-ink" />
-      <span className={cx('rounded-md px-2 py-1', end === null ? 'border-2 border-dashed border-ink text-ink-2' : 'bg-ink text-white')}>{end === null ? 'in progress' : num(end)}</span>
+      <span className={cx('rounded-md px-2 py-1', end === null ? 'border-2 border-dashed border-ink text-ink-2' : 'bg-ink text-on-ink')}>{end === null ? 'in progress' : num(end)}</span>
     </div>
   )
 }
@@ -152,7 +152,7 @@ function ShiftCard({ e, now, onEdit }: { e: Extract<LedgerEntry, { kind: 'shift'
           </div>
           <div className="text-[11px] font-extrabold uppercase tracking-wider">{live ? 'Business · active shift' : 'Business shift'}</div>
         </div>
-        <button type="button" onClick={onEdit} aria-label="Edit shift" className={cx('grid size-12 shrink-0 place-items-center rounded-xl border-2', live ? 'border-white' : 'border-ink bg-white')}>
+        <button type="button" onClick={onEdit} aria-label="Edit shift" className={cx('grid size-12 shrink-0 place-items-center rounded-xl border-2', live ? 'border-white' : 'border-ink bg-surface')}>
           <Pencil size={18} strokeWidth={2.5} />
         </button>
       </div>
@@ -163,9 +163,9 @@ function ShiftCard({ e, now, onEdit }: { e: Extract<LedgerEntry, { kind: 'shift'
           <Stat label="Write-off" value={money(e.miles * rate)} tone="go" />
           <Stat label="Break" value={`${s.breakMin}m`} />
         </div>
-        <div className="num rounded-xl bg-ink px-3 py-2 text-center text-base font-black text-white">
+        <div className="num rounded-xl bg-ink px-3 py-2 text-center text-base font-black text-on-ink">
           Shift Length: {fmtDuration(shiftLengthMin(s, now))}
-          <span className="block text-xs font-bold text-white/70">
+          <span className="block text-xs font-bold text-on-ink/70">
             ({fmtDuration(grossMinutes(s, now))} − {s.breakMin}m break)
           </span>
         </div>
@@ -192,9 +192,9 @@ function ShiftCard({ e, now, onEdit }: { e: Extract<LedgerEntry, { kind: 'shift'
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: 'go' }) {
   return (
-    <div className="rounded-xl border-2 border-slate-200 px-1 py-2">
+    <div className="rounded-xl border-2 border-line px-1 py-2">
       <div className="text-[10px] font-extrabold uppercase tracking-wide text-ink-2">{label}</div>
-      <div className={cx('num text-lg font-black', tone === 'go' && 'text-go-dark')}>{value}</div>
+      <div className={cx('num text-lg font-black', tone === 'go' && 'text-go-text')}>{value}</div>
     </div>
   )
 }
@@ -275,9 +275,9 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
       disabled={disabled}
       onClick={() => (setField(which), setFresh(true))}
       aria-pressed={field === which}
-      className={cx('min-h-16 rounded-xl border-2 border-ink px-2 text-center disabled:opacity-40', field === which ? 'bg-amber' : 'bg-white')}
+      className={cx('min-h-16 rounded-xl border-2 border-ink px-2 text-center disabled:opacity-40', field === which ? 'bg-amber text-brand' : 'bg-surface')}
     >
-      <span className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-2">{which} odometer</span>
+      <span className="block text-[10px] font-extrabold uppercase tracking-wider opacity-70">{which} odometer</span>
       <span className="num text-2xl font-black">{val ? num(Number(val)) : '—'}</span>
     </button>
   )
@@ -310,7 +310,7 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
 
         <div className="rounded-xl border-2 border-ink p-3">
           <BreakStepper minutes={brk.breakMin} onBump={(d) => setBrk(adjustBreaks(draft, d, now, uid))} />
-          <div className="num mt-2 border-t-2 border-dashed border-slate-300 pt-2 text-center text-base font-black">
+          <div className="num mt-2 border-t-2 border-dashed border-line pt-2 text-center text-base font-black">
             Shift Length: {fmtDuration(shiftLengthMin(draft, now))}
           </div>
           {brk.breaks.length > 0 && (
@@ -341,7 +341,7 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
             {allApps.map((n) => {
               const on = apps.includes(n)
               return (
-                <button key={n} type="button" aria-pressed={on} onClick={() => setApps(on ? apps.filter((x) => x !== n) : [...apps, n])} className={cx('min-h-12 rounded-xl border-2 border-ink px-3 text-sm font-extrabold', on ? 'bg-ink text-white' : 'bg-white')}>
+                <button key={n} type="button" aria-pressed={on} onClick={() => setApps(on ? apps.filter((x) => x !== n) : [...apps, n])} className={cx('min-h-12 rounded-xl border-2 border-ink px-3 text-sm font-extrabold', on ? 'bg-ink text-on-ink' : 'bg-surface')}>
                   {n}
                 </button>
               )
@@ -440,12 +440,12 @@ function RatioBar({ business, personal }: { business: number; personal: number }
   const p = pct(business, personal)
   return (
     <div>
-      <div className="flex h-7 overflow-hidden rounded-lg border-2 border-ink bg-white" role="img" aria-label={`${p.toFixed(1)}% business, ${(100 - p).toFixed(1)}% personal`}>
+      <div className="flex h-7 overflow-hidden rounded-lg border-2 border-ink bg-surface" role="img" aria-label={`${p.toFixed(1)}% business, ${(100 - p).toFixed(1)}% personal`}>
         <div className="bg-go-dark" style={{ width: `${p}%`, printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }} />
-        <div className="flex-1 bg-slate-300" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }} />
+        <div className="flex-1 bg-line" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }} />
       </div>
       <div className="num mt-1 flex justify-between text-xs font-extrabold">
-        <span className="text-go-dark">Business {p.toFixed(1)}%</span>
+        <span className="text-go-text">Business {p.toFixed(1)}%</span>
         <span className="text-ink-2">Personal {(business + personal ? 100 - p : 0).toFixed(1)}%</span>
       </div>
     </div>
@@ -472,9 +472,9 @@ function TaxSummary({ vehicle, ledger, now, onReport, onCsv }: { vehicle: Vehicl
             </select>
           )}
         </div>
-        <div className="rounded-xl border-2 border-ink bg-emerald-50 p-4 text-center">
-          <div className="text-xs font-extrabold uppercase tracking-widest text-go-dark">Standard mileage deduction</div>
-          <div className="num text-4xl font-black text-go-dark">{money(y.business * rate)}</div>
+        <div className="rounded-xl border-2 border-ink bg-go-soft p-4 text-center">
+          <div className="text-xs font-extrabold uppercase tracking-widest text-go-text">Standard mileage deduction</div>
+          <div className="num text-4xl font-black text-go-text">{money(y.business * rate)}</div>
           <div className="num text-sm font-bold text-ink-2">
             {num(y.business)} business {unit} × {fmtRate(rate)}/{unit}
           </div>
@@ -521,12 +521,12 @@ function MonthTable({ y }: { y: YearSummary }) {
         </thead>
         <tbody>
           {rows.map(({ m, i }) => (
-            <tr key={i} className="border-t border-slate-300">
+            <tr key={i} className="border-t border-line">
               <td className="px-3 py-2 text-left font-black">{MONTHS[i]}</td>
               <td className="px-2 py-2">{num(m.business)}</td>
               <td className="px-2 py-2 text-ink-2">{num(m.personal)}</td>
               <td className="px-2 py-2">{fmtDuration(m.lengthMin)}</td>
-              <td className="px-3 py-2 font-black text-go-dark">{money(m.business * rate)}</td>
+              <td className="px-3 py-2 font-black text-go-text">{money(m.business * rate)}</td>
             </tr>
           ))}
         </tbody>
@@ -544,8 +544,8 @@ function ReportBody({ vehicle, y, ledger, now }: { vehicle: Vehicle; y: YearSumm
   const last = entries[entries.length - 1]
   const odoStart = first ? (first.kind === 'shift' ? first.shift.startOdo : first.startOdo) : vehicle.startOdo
   const odoEnd = last ? (last.kind === 'shift' ? (last.shift.endOdo ?? last.shift.startOdo) : last.endOdo) : vehicle.startOdo
-  const th = 'border border-slate-400 bg-slate-100 px-2 py-1 text-left text-[11px] uppercase'
-  const td = 'border border-slate-400 px-2 py-1'
+  const th = 'border border-ink-2 bg-bg-2 px-2 py-1 text-left text-[11px] uppercase'
+  const td = 'border border-ink-2 px-2 py-1'
   return (
     <div className="space-y-5 text-ink">
       <header className="border-b-4 border-ink pb-3">
@@ -587,7 +587,7 @@ function ReportBody({ vehicle, y, ledger, now }: { vehicle: Vehicle; y: YearSumm
       <section>
         <h2 className="mb-2 text-base font-black">2. Standard mileage deduction</h2>
         <p className="num rounded-lg border-2 border-ink p-3 text-center text-lg font-black">
-          {num(y.business)} {unit} × {fmtRate(rate)}/{unit} = <span className="text-go-dark">{money(y.business * rate)}</span>
+          {num(y.business)} {unit} × {fmtRate(rate)}/{unit} = <span className="text-go-text">{money(y.business * rate)}</span>
         </p>
       </section>
 
@@ -617,7 +617,7 @@ function ReportBody({ vehicle, y, ledger, now }: { vehicle: Vehicle; y: YearSumm
 
       <section>
         <h2 className="mb-2 text-base font-black">4. Monthly summary</h2>
-        <div className="rounded-lg border border-slate-400">
+        <div className="rounded-lg border border-ink-2">
           <MonthTable y={y} />
         </div>
       </section>

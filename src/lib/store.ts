@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { defaultMaint, demoData, emptyData, uid } from './defaults'
 import { activeShiftOf, adjustBreaks, chainFloor, currentOdo, defaultRate, fmtDate, fmtTime, KM_PER_MI, shiftBounds } from './engine'
-import type { AppData, Category, MaintItem, Platform, Shift, Txn, TxnType, Unit, Vehicle } from './types'
+import type { AppData, Category, MaintItem, Platform, Shift, ThemeMode, Txn, TxnType, Unit, Vehicle } from './types'
 
 /* ----------------------------- toasts ----------------------------- */
 
@@ -83,6 +83,7 @@ export interface Actions {
   // settings & data
   setRate: (rate: number) => void
   setUnit: (unit: Unit) => void
+  setTheme: (theme: ThemeMode) => void
   finishOnboarding: () => void
   loadDemo: () => void
   clearAll: () => void
@@ -253,6 +254,7 @@ export const useStore = create<AppData & Actions>()(
           const converted = r === defaultRate(s.settings.unit) ? defaultRate(unit) : unit === 'km' ? r / KM_PER_MI : r * KM_PER_MI
           return { settings: { ...s.settings, unit, rate: Math.round(converted * 1000) / 1000 } }
         }),
+      setTheme: (theme) => set((s) => ({ settings: { ...s.settings, theme } })),
       finishOnboarding: () => set({ onboarded: true }),
 
       loadDemo: () => set({ ...demoData(), settings: get().settings }),
