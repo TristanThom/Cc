@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { defaultMaint, demoData, emptyData, uid } from './defaults'
-import { activeShiftOf, adjustBreaks, chainFloor, currentOdo, defaultRate, KM_PER_MI, shiftBounds } from './engine'
+import { activeShiftOf, adjustBreaks, chainFloor, currentOdo, defaultRate, fmtDate, fmtTime, KM_PER_MI, shiftBounds } from './engine'
 import type { AppData, Category, MaintItem, Platform, Shift, Txn, TxnType, Unit, Vehicle } from './types'
 
 /* ----------------------------- toasts ----------------------------- */
@@ -59,7 +59,8 @@ export interface Actions {
   selectVehicle: (id: string) => void
   setOdoReading: (vehicleId: string, odo: number) => Result
   // shifts
-  startShift: (vehicleId: string, odo: number, photo?: string) => Result
+  /** `startedAt` backdates the shift for drivers who forgot to start it; defaults to now. */
+  startShift: (vehicleId: string, odo: number, photo?: string, startedAt?: number) => Result
   endShift: (shiftId: string, endOdo: number, notes: string, photo?: string) => Result
   bumpBreak: (shiftId: string, delta: number) => void
   updateShift: (shiftId: string, patch: Partial<Omit<Shift, 'id' | 'vehicleId'>>) => Result
@@ -134,19 +135,25 @@ export const useStore = create<AppData & Actions>()(
         return null
       },
 
-      startShift: (vehicleId, odo, photo) => {
+      startShift: (vehicleId, odo, photo, startedAt) => {
         const { vehicles, shifts, platforms } = get()
         const v = vehicles.find((x) => x.id === vehicleId)
         if (!v) return 'Add a vehicle first.'
         if (activeShiftOf(shifts, vehicleId)) return 'A shift is already active for this vehicle.'
         const floor = chainFloor(v, shifts)
         if (odo < floor) return `Start odometer can't be below ${floor.toLocaleString()} — the last logged reading.`
+        const now = Date.now()
+        const startTs = startedAt ?? now
+        if (!Number.isFinite(startTs)) return 'Pick a valid start time.'
+        if (startTs > now) return "Start time can't be in the future."
+        const lastEnd = Math.max(0, ...shifts.filter((s) => s.vehicleId === vehicleId).map((s) => s.endTs ?? s.startTs))
+        if (startTs < lastEnd) return `Start time can't be before your last shift ended (${fmtDate(lastEnd)}, ${fmtTime(lastEnd)}).`
         const shift: Shift = {
           id: uid(),
           vehicleId,
           startOdo: odo,
           endOdo: null,
-          startTs: Date.now(),
+          startTs,
           endTs: null,
           platforms: platforms.filter((p) => p.active).map((p) => p.name),
           notes: '',

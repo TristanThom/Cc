@@ -1,12 +1,13 @@
 import { BellRing, Check, ChevronDown, DollarSign, History as HistoryIcon, Home as HomeIcon, Settings as SettingsIcon, WifiOff } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState, type ComponentType } from 'react'
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
 import Onboarding from './components/Onboarding'
 import { cx } from './components/ui'
 import { currentOdo, maintState } from './lib/engine'
 import { closeTop, isNative } from './lib/native'
 import { useOnline } from './lib/pwa'
 import { useStore, useToast, useVehicle } from './lib/store'
+import { useSwipeNav } from './lib/swipe'
 import Alerts from './tabs/Alerts'
 import History from './tabs/History'
 import Home from './tabs/Home'
@@ -63,6 +64,13 @@ export default function App() {
       remove?.()
     }
   }, [])
+
+  // A loose swipe anywhere on the page changes tabs, for a mounted phone that is hard to reach.
+  const onSwipe = useCallback((d: -1 | 1) => setNav(([cur]) => {
+    const next = Math.min(TABS.length - 1, Math.max(0, cur + d))
+    return next === cur ? [cur, 0] : [next, d]
+  }), [])
+  useSwipeNav(mainRef, !setup, onSwipe)
 
   const View = TABS[tab].view
 

@@ -52,7 +52,7 @@ export default function Onboarding() {
 
   const explain = [
     { Icon: Play, bg: 'bg-amber', t: 'Start & end shifts', d: 'Enter the odometer when you go online and again when you stop. That’s the only logging you do.' },
-    { Icon: UserRound, bg: 'bg-bg-2', t: 'Personal gaps fill themselves in', d: 'Anything driven between one shift’s end and the next shift’s start is auto-logged as a non-deductible Personal Gap.' },
+    { Icon: UserRound, bg: 'bg-bg-2', t: 'Personal miles fill themselves in', d: 'Anything driven between one shift’s end and the next shift’s start is auto-logged as non-deductible Personal miles.' },
     { Icon: ShieldCheck, bg: 'bg-emerald-100', t: 'Unbroken chain, live write-off', d: `Zero unaccounted ${unit === 'mi' ? 'miles' : 'kilometres'}. Business distance × ${fmtRate(rate)}/${unit} updates your tax write-off instantly.` },
   ]
 
@@ -114,9 +114,9 @@ export default function Onboarding() {
                 </ul>
                 <div className="num flex items-center gap-1 text-[11px] font-black" aria-hidden>
                   <span className="flex-[3] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
-                  <span className="flex-1 rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">GAP</span>
+                  <span className="flex-[3] rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">PERSONAL</span>
                   <span className="flex-[4] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
-                  <span className="flex-1 rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">GAP</span>
+                  <span className="flex-[3] rounded-md border-2 border-dashed border-ink-2 py-1 text-center text-ink-2">PERSONAL</span>
                   <span className="flex-[2] rounded-md bg-go-dark py-1.5 text-center text-white">SHIFT</span>
                 </div>
                 <p className="num text-center text-sm font-extrabold">

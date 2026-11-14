@@ -223,16 +223,21 @@ export function Confirm({
 
 /* ----------------------------- Keypad ----------------------------- */
 
-export function Keypad({ value, onChange, maxLen = 7, decimal }: { value: string; onChange: (v: string) => void; maxLen?: number; decimal?: boolean }) {
+/**
+ * `fresh` means the value on show is a prefilled suggestion (like selected text in a field):
+ * the first digit typed replaces it, while backspace still edits it.
+ */
+export function Keypad({ value, onChange, maxLen = 7, decimal, fresh }: { value: string; onChange: (v: string) => void; maxLen?: number; decimal?: boolean; fresh?: boolean }) {
   const press = (k: string) => {
     if (k === 'back') return onChange(value.slice(0, -1))
     if (k === 'clear') return onChange('')
+    const base = fresh ? '' : value
     if (k === '.') {
-      if (value.includes('.')) return
-      return onChange((value || '0') + '.')
+      if (base.includes('.')) return
+      return onChange((base || '0') + '.')
     }
-    if (decimal && value.includes('.') && value.split('.')[1].length >= 2) return
-    const next = value === '0' ? k : value + k
+    if (decimal && base.includes('.') && base.split('.')[1].length >= 2) return
+    const next = base === '0' ? k : base + k
     if (next.replace('.', '').length <= maxLen) onChange(next)
   }
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', decimal ? '.' : 'clear', '0', 'back']
@@ -297,11 +302,11 @@ export function BreakStepper({
 
 const DIGIT_H = 1.35 // em
 
-export function OdometerDrum({ value, digits = 6, size = 'lg' }: { value: number; digits?: number; size?: 'lg' | 'sm' }) {
+export function OdometerDrum({ value, digits = 6, size = 'lg', dim }: { value: number; digits?: number; size?: 'lg' | 'sm'; dim?: boolean }) {
   const str = String(Math.max(0, Math.round(value))).padStart(digits, '0').slice(-Math.max(digits, String(Math.round(value)).length))
   return (
     <div
-      className={cx('num inline-flex gap-[3px] rounded-xl bg-ink p-1.5 font-black', size === 'lg' ? 'text-[clamp(2.2rem,11vw,3.75rem)]' : 'text-3xl')}
+      className={cx('num inline-flex gap-[3px] rounded-xl bg-ink p-1.5 font-black transition-opacity', dim && 'opacity-45', size === 'lg' ? 'text-[clamp(2.2rem,11vw,3.75rem)]' : 'text-3xl')}
       role="img"
       aria-label={`Odometer ${Math.round(value).toLocaleString()}`}
     >

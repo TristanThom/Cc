@@ -2,7 +2,7 @@ import { Check, CheckCheck, ChevronRight, Flag, Gauge, Play, Plus, Rocket, Squar
 import { useEffect, useMemo, useState } from 'react'
 import { BreakStepper, Btn, Card, cx, ErrorText, Field, inputCls, Keypad, OdometerDrum, PhotoInput, Segmented, Sheet, Swatches } from '../components/ui'
 import { SWATCHES } from '../lib/defaults'
-import { activeShiftOf, ALL_TIME, buildLedger, chainFloor, currentOdo, fmtClock, fmtDuration, fmtRate, fmtTime, grossMinutes, mileTotals, money, num, periodFor, shiftLengthMin, type Period } from '../lib/engine'
+import { activeShiftOf, buildLedger, chainFloor, currentOdo, fmtClock, fmtDuration, fmtTime, grossMinutes, mileTotals, money, num, periodFor, shiftLengthMin, toLocalInput, weekLabel, yearPeriod, type Period } from '../lib/engine'
 import { toast, useNow, useStore, useVehicle } from '../lib/store'
 import type { Shift, Vehicle } from '../lib/types'
 
@@ -133,10 +133,10 @@ function ActiveShiftBar({ shift, onEnd }: { shift: Shift; onEnd: () => void }) {
 function MetricsCard({ vehicle }: { vehicle: Vehicle }) {
   const shifts = useStore((s) => s.shifts)
   const { rate, unit } = useStore((s) => s.settings)
-  const [range, setRange] = useState<'week' | 'month' | 'all'>('week')
+  const [range, setRange] = useState<'week' | 'month' | 'year'>('week')
   const now = useNow(30_000)
   const ledger = useMemo(() => buildLedger(vehicle, shifts), [vehicle, shifts])
-  const period: Period = range === 'all' ? ALL_TIME : periodFor(range, now)
+  const period: Period = range === 'year' ? yearPeriod(now) : periodFor(range, now)
   const t = mileTotals(ledger, period, now)
   return (
     <Card>
@@ -148,7 +148,7 @@ function MetricsCard({ vehicle }: { vehicle: Vehicle }) {
           options={[
             { value: 'week', label: 'Weekly' },
             { value: 'month', label: 'Monthly' },
-            { value: 'all', label: 'All-Time' },
+            { value: 'year', label: 'This Year' },
           ]}
         />
       </div>
@@ -159,19 +159,13 @@ function MetricsCard({ vehicle }: { vehicle: Vehicle }) {
             {num(t.business)}
             <span className="ml-1 text-base text-ink-2">{unit}</span>
           </div>
-          <div className="num mt-1 text-xs font-bold text-ink-2">
-            {t.shiftCount} shift{t.shiftCount === 1 ? '' : 's'} · {num(t.personal)} personal
-          </div>
         </div>
         <div className="bg-emerald-50 p-4">
           <div className="text-xs font-extrabold uppercase tracking-wide text-go-dark">Est. Tax Write-Off</div>
           <div className="num mt-1 text-3xl font-black text-go-dark">{money(t.business * rate)}</div>
-          <div className="num mt-1 text-xs font-bold text-ink-2">
-            @ {fmtRate(rate)}/{unit} IRS rate
-          </div>
         </div>
       </div>
-      <p className="border-t-2 border-ink px-4 py-2 text-xs font-bold text-ink-2">{period.mode === 'week' ? `Week of ${period.label} · resets Mon 4:00 AM ET` : period.label}</p>
+      <p className="border-t-2 border-ink px-4 py-2 text-xs font-bold text-ink-2">{period.mode === 'week' ? weekLabel(period) : period.label}</p>
     </Card>
   )
 }
@@ -296,10 +290,17 @@ function OdoSheet({ mode, setMode, vehicle, active }: { mode: OdoMode | null; se
   const [notes, setNotes] = useState('')
   const [photo, setPhoto] = useState<string>()
   const [err, setErr] = useState<string | null>(null)
+  // True until the driver types: the last reading is shown as a hint that the first digit replaces.
+  const [fresh, setFresh] = useState(true)
+  const [when, setWhen] = useState<'now' | 'earlier'>('now')
+  const [startAt, setStartAt] = useState('')
 
   useEffect(() => {
     if (mode) {
       setVal(String(odo))
+      setFresh(true)
+      setWhen('now')
+      setStartAt(toLocalInput(Date.now()))
       setNotes(active?.notes ?? '')
       setPhoto(undefined)
       setErr(null)
@@ -310,6 +311,12 @@ function OdoSheet({ mode, setMode, vehicle, active }: { mode: OdoMode | null; se
   const n = val === '' ? NaN : Number(val)
   const ending = !!active && mode !== null
   const close = () => setMode(null)
+  const start = () => {
+    if (when === 'now') return done(startShift(vehicle.id, n, photo), 'Shift started — drive safe')
+    const ts = new Date(startAt).getTime()
+    if (!Number.isFinite(ts)) return setErr('Pick the time you went online.')
+    done(startShift(vehicle.id, n, photo, ts), `Shift started from ${fmtTime(ts)}`)
+  }
   const done = (e: string | null, msg: string) => {
     setErr(e)
     if (!e) {
@@ -333,7 +340,7 @@ function OdoSheet({ mode, setMode, vehicle, active }: { mode: OdoMode | null; se
           </Btn>
         ) : (
           <>
-            <Btn tone="amber" big className="w-full" disabled={!Number.isFinite(n)} onClick={() => done(startShift(vehicle.id, n, photo), 'Shift started — drive safe')}>
+            <Btn tone="amber" big className="w-full" disabled={!Number.isFinite(n)} onClick={start}>
               <Play size={22} strokeWidth={3} fill="currentColor" /> Start Shift at {Number.isFinite(n) ? num(n) : '—'}
             </Btn>
             {mode === 'check' && (
@@ -347,9 +354,11 @@ function OdoSheet({ mode, setMode, vehicle, active }: { mode: OdoMode | null; se
     >
       <div className="flex flex-col items-center gap-2">
         <span className="text-xs font-extrabold uppercase tracking-widest text-ink-2">{ending ? 'End odometer reading' : 'Odometer reading'}</span>
-        <OdometerDrum value={Number.isFinite(n) ? n : 0} size="sm" />
+        <OdometerDrum value={Number.isFinite(n) ? n : 0} size="sm" dim={fresh} />
         <p className="num min-h-5 text-center text-sm font-extrabold" aria-live="polite">
-          {!Number.isFinite(delta) ? (
+          {fresh ? (
+            <span className="text-ink-2">Last reading shown — just type the new one</span>
+          ) : !Number.isFinite(delta) ? (
             <span className="text-ink-2">Enter the reading on your dash</span>
           ) : delta < 0 ? (
             <span className="text-stop">
@@ -363,13 +372,32 @@ function OdoSheet({ mode, setMode, vehicle, active }: { mode: OdoMode | null; se
             <span className="text-ink-2">No personal {unit} since last entry</span>
           ) : (
             <span className="text-ink-2">
-              +{num(delta)} {unit} auto-logged as Personal Gap
+              +{num(delta)} {unit} auto-logged as Personal
             </span>
           )}
         </p>
       </div>
 
-      <Keypad value={val} onChange={(x) => (setVal(x), setErr(null))} />
+      <Keypad value={val} fresh={fresh} onChange={(x) => (setVal(x), setFresh(false), setErr(null))} />
+
+      {!ending && (
+        <div className="space-y-2 rounded-xl border-2 border-ink p-3">
+          <Segmented
+            label="Shift start time"
+            value={when}
+            onChange={(w) => (setWhen(w), setErr(null))}
+            options={[
+              { value: 'now', label: 'Start now' },
+              { value: 'earlier', label: 'Earlier start time' },
+            ]}
+          />
+          {when === 'earlier' && (
+            <Field label="When did you go online?" hint="For when you forgot to start the shift. It can't be in the future.">
+              <input type="datetime-local" className={inputCls} value={startAt} max={toLocalInput(now)} onChange={(e) => (setStartAt(e.target.value), setErr(null))} />
+            </Field>
+          )}
+        </div>
+      )}
       <ErrorText>{err}</ErrorText>
 
       {ending && (

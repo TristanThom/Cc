@@ -56,7 +56,7 @@ export function monthEnd(start: number): number {
 
 export type PeriodMode = 'week' | 'month'
 export interface Period {
-  mode: PeriodMode | 'all'
+  mode: PeriodMode | 'year' | 'all'
   start: number
   end: number
   label: string
@@ -75,6 +75,15 @@ export function periodFor(mode: PeriodMode, ts: number): Period {
   const start = monthStart(ts)
   return { mode, start, end: monthEnd(start), label: etMonth.format(start) }
 }
+
+/** The calendar year (Eastern time) containing `ts`: what matters for taxes. */
+export function yearPeriod(ts: number): Period {
+  const y = new Date(etWall(ts)).getUTCFullYear()
+  return { mode: 'year', start: fromEtWall(Date.UTC(y, 0, 1)), end: fromEtWall(Date.UTC(y + 1, 0, 1)), label: String(y) }
+}
+
+/** Short label for a payout week, e.g. "Week of Nov 9". */
+export const weekLabel = (p: Period) => `Week of ${etDay.format(p.start)}`
 
 export const ALL_TIME: Period = { mode: 'all', start: -Infinity, end: Infinity, label: 'All time' }
 
@@ -330,7 +339,7 @@ export function ledgerCsv(v: Vehicle, ledger: LedgerEntry[], rate: number, unit:
       const len = shiftLengthMin(s, now)
       rows.push([name, s.endTs === null ? 'Business (in progress)' : 'Business', iso(s.startTs), fmtTime(s.startTs), s.endTs ? fmtTime(s.endTs) : '', s.startOdo, s.endOdo ?? '', e.miles, s.platforms.join('; '), fmtDuration(len), len, s.breakMin, rate, (e.miles * rate).toFixed(2), s.notes])
     } else {
-      rows.push([name, 'Personal Gap', iso(e.toTs ?? e.fromTs), '', '', e.startOdo, e.endOdo, e.miles, '', '', '', '', '', '0.00', e.note])
+      rows.push([name, 'Personal', iso(e.toTs ?? e.fromTs), '', '', e.startOdo, e.endOdo, e.miles, '', '', '', '', '', '0.00', e.note])
     }
   }
   return rows.map((r) => r.map(csvCell).join(',')).join('\r\n')

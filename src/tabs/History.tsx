@@ -38,7 +38,7 @@ export default function History() {
     const hay =
       e.kind === 'shift'
         ? [e.shift.notes, e.shift.platforms.join(' '), e.shift.startOdo, e.shift.endOdo ?? '', fmtDateYear(e.shift.startTs), 'business shift']
-        : [e.note, e.startOdo, e.endOdo, e.toTs ? fmtDateYear(e.toTs) : '', 'personal gap']
+        : [e.note, e.startOdo, e.endOdo, e.toTs ? fmtDateYear(e.toTs) : '', 'personal']
     return hay.join(' ').toLowerCase().includes(needle)
   })
 
@@ -71,7 +71,7 @@ export default function History() {
               options={[
                 { value: 'all', label: 'All' },
                 { value: 'business', label: 'Business' },
-                { value: 'gaps', label: 'Personal Gaps' },
+                { value: 'gaps', label: 'Personal' },
               ]}
             />
             <div className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[1fr_12rem_auto]">
@@ -205,7 +205,7 @@ function GapCard({ e }: { e: Extract<LedgerEntry, { kind: 'gap' }> }) {
     <div className="rounded-2xl border-2 border-dashed border-ink-2 bg-bg-2 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-ink-2">
-          <UserRound size={14} strokeWidth={3} /> Personal gap · not deductible
+          <UserRound size={14} strokeWidth={3} /> Personal · not deductible
         </span>
         <span className="num text-base font-black">
           {num(e.miles)} {unit}
@@ -230,6 +230,8 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
   const [startOdo, setStartOdo] = useState(String(shift.startOdo))
   const [endOdo, setEndOdo] = useState(shift.endOdo === null ? '' : String(shift.endOdo))
   const [field, setField] = useState<'start' | 'end'>(live ? 'start' : 'end')
+  // True until the driver types in the selected field, so the first digit replaces the old number.
+  const [fresh, setFresh] = useState(true)
   const [startAt, setStartAt] = useState(toLocalInput(shift.startTs))
   const [endAt, setEndAt] = useState(shift.endTs ? toLocalInput(shift.endTs) : '')
   const [brk, setBrk] = useState({ breakMin: shift.breakMin, breaks: shift.breaks })
@@ -245,6 +247,7 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
       setStartOdo(String(shift.startOdo))
       setEndOdo(shift.endOdo === null ? '' : String(shift.endOdo))
       setBrk({ breakMin: shift.breakMin, breaks: shift.breaks })
+      setFresh(true)
       setErr(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -270,7 +273,7 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
     <button
       type="button"
       disabled={disabled}
-      onClick={() => setField(which)}
+      onClick={() => (setField(which), setFresh(true))}
       aria-pressed={field === which}
       className={cx('min-h-16 rounded-xl border-2 border-ink px-2 text-center disabled:opacity-40', field === which ? 'bg-amber' : 'bg-white')}
     >
@@ -303,7 +306,7 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
         <p className="num text-center text-sm font-extrabold text-ink-2">
           {live ? 'Shift in progress — end it from Home' : startOdo && endOdo && Number(endOdo) >= Number(startOdo) ? `${num(Number(endOdo) - Number(startOdo))} business ${unit}` : 'End must be at or above start'}
         </p>
-        <Keypad value={field === 'start' ? startOdo : endOdo} onChange={(x) => ((field === 'start' ? setStartOdo : setEndOdo)(x), setErr(null))} />
+        <Keypad value={field === 'start' ? startOdo : endOdo} fresh={fresh} onChange={(x) => ((field === 'start' ? setStartOdo : setEndOdo)(x), setFresh(false), setErr(null))} />
 
         <div className="rounded-xl border-2 border-ink p-3">
           <BreakStepper minutes={brk.breakMin} onBump={(d) => setBrk(adjustBreaks(draft, d, now, uid))} />
@@ -357,14 +360,14 @@ function EditShiftSheet({ open, shift, vehicle, onClose }: { open: boolean; shif
         )}
         <ErrorText>{err}</ErrorText>
         <p className="text-xs font-bold text-ink-2">
-          Chain start for this vehicle: <span className="num">{num(vehicle.startOdo)}</span>. Readings can't overlap neighbouring shifts — the personal gaps on either side re-calculate automatically.
+          Chain start for this vehicle: <span className="num">{num(vehicle.startOdo)}</span>. Readings can't overlap neighbouring shifts — the personal miles on either side re-calculate automatically.
         </p>
       </Sheet>
       <Confirm
         open={del}
         onClose={() => setDel(false)}
         title="Delete this shift?"
-        body={`Its ${unit === 'mi' ? 'miles' : 'kilometres'} fold into the surrounding Personal Gap, so the odometer chain stays unbroken. This can't be undone.`}
+        body={`Its ${unit === 'mi' ? 'miles' : 'kilometres'} are re-counted as Personal, so the odometer chain stays unbroken. This can't be undone.`}
         action="Delete shift"
         onConfirm={() => {
           deleteShift(shift.id)
