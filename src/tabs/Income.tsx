@@ -2,6 +2,7 @@ import { CalendarDays, ChevronDown, Eye, EyeOff, Plus, Settings2, Trash2 } from 
 import { useEffect, useMemo, useState } from 'react'
 import { Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Keypad, Pill, Segmented, Sheet, Swatches } from '../components/ui'
 import EarningsImport from '../components/EarningsImport'
+import HoursCard from '../components/HoursCard'
 import { SWATCHES } from '../lib/defaults'
 import { buildLedger, inPeriod, listPeriods, mileTotals, money, moneyTotals, num, periodFor, relDate, signedMoney, toLocalInput, type Period, type PeriodMode } from '../lib/engine'
 import { toast, useNow, useStore, useVehicle } from '../lib/store'
@@ -28,7 +29,8 @@ export default function Income() {
   const period = periodFor(mode, anchor ?? now)
   const isCurrent = inPeriod(now, period)
   const totals = moneyTotals(txns, v.id, period)
-  const shield = mileTotals(ledger, period, now).business * rate
+  const businessMiles = mileTotals(ledger, period, now).business
+  const shield = businessMiles * rate
   const list = txns.filter((t) => t.vehicleId === v.id && inPeriod(t.ts, period)).sort((a, b) => b.ts - a.ts)
   const colorOf = (t: Txn) => categories.find((c) => c.type === t.type && c.name === t.category)?.color ?? (t.type === 'income' ? '#15803D' : '#B91C1C')
 
@@ -71,6 +73,8 @@ export default function Income() {
         <Plus size={24} strokeWidth={3.5} /> Add Transaction
       </Btn>
       <EarningsImport vehicleId={v.id} />
+
+      <HoursCard vehicleId={v.id} period={period} now={now} businessMiles={businessMiles} />
 
       <Card>
         <div className="flex items-center justify-between gap-3 p-3">

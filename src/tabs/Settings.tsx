@@ -1,4 +1,4 @@
-import { Car, Check, DatabaseBackup, Download, FlaskConical, Moon, Pencil, Plus, Smartphone, Trash2, Upload } from 'lucide-react'
+import { Car, Check, DatabaseBackup, Download, FlaskConical, ImageUp, Moon, Pencil, Plus, Smartphone, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Segmented, Sheet } from '../components/ui'
 import { currentOdo, defaultRate, fmtRate, num } from '../lib/engine'
@@ -13,7 +13,7 @@ export default function Settings() {
   const activeId = useStore((s) => s.activeVehicleId)
   const shifts = useStore((s) => s.shifts)
   const settings = useStore((s) => s.settings)
-  const { selectVehicle, deleteVehicle, setRate, setUnit, setTheme, loadDemo, clearAll, restore } = useStore.getState()
+  const { selectVehicle, deleteVehicle, setRate, setUnit, setTheme, setSplitTips, setImportHints, loadDemo, clearAll, restore } = useStore.getState()
   const [form, setForm] = useState<{ v: Vehicle | null; key: number }>({ v: null, key: 0 })
   const [formOpen, setFormOpen] = useState(false)
   const [del, setDel] = useState<Vehicle | null>(null)
@@ -91,6 +91,26 @@ export default function Settings() {
             ]}
           />
           <p className="text-xs font-semibold text-ink-2">System follows your phone's light or dark setting. Dark is easier on the eyes for night driving.</p>
+        </Card>
+
+        <Card className="space-y-1 p-4">
+          <h2 className="mb-2 flex items-center gap-2 text-base font-black">
+            <ImageUp size={20} strokeWidth={2.5} /> Screenshot import
+          </h2>
+          <label className="flex min-h-12 items-center justify-between gap-3 text-sm font-extrabold">
+            <span>
+              Count tips separately
+              <span className="block text-xs font-semibold text-ink-2">Imports add tips as their own income entry.</span>
+            </span>
+            <input type="checkbox" className="size-7 shrink-0 accent-[#15803D]" checked={settings.splitTips ?? false} onChange={(e) => setSplitTips(e.target.checked)} />
+          </label>
+          <label className="flex min-h-12 items-center justify-between gap-3 text-sm font-extrabold">
+            <span>
+              Point out missing information
+              <span className="block text-xs font-semibold text-ink-2">The review says what your screenshots left out, such as tips or online time.</span>
+            </span>
+            <input type="checkbox" className="size-7 shrink-0 accent-[#15803D]" checked={settings.importHints ?? true} onChange={(e) => setImportHints(e.target.checked)} />
+          </label>
         </Card>
 
         <Card className="space-y-4 p-4">

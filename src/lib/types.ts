@@ -50,6 +50,30 @@ export interface Txn {
   amount: number
   ts: number
   note: string
+  /** Set on entries created by a screenshot import, so importing the same period again updates them. */
+  importKey?: string
+}
+
+/**
+ * What a driver app reported for one of its own days or weeks, read from imported screenshots.
+ * `date` is the app's calendar day (or the Monday of the week), as YYYY-MM-DD.
+ */
+export interface PlatformStat {
+  id: string
+  vehicleId: string
+  app: string
+  period: 'day' | 'week'
+  date: string
+  /** Total the app paid for the period, tips included. */
+  earnings?: number
+  tips?: number
+  tipRides?: number
+  onlineMin?: number
+  bookedMin?: number
+  bookedMi?: number
+  trips?: number
+  rejected?: number
+  updatedAt: number
 }
 
 export interface Category {
@@ -77,6 +101,10 @@ export interface Settings {
   unit: Unit
   /** Missing in data saved before dark mode existed; treated as "system". */
   theme?: ThemeMode
+  /** Screenshot imports add tips as their own entry, separate from the platform total. */
+  splitTips?: boolean
+  /** The import review points out what the screenshots did not include. Off once the driver hides it. */
+  importHints?: boolean
 }
 
 export interface AppData {
@@ -87,6 +115,7 @@ export interface AppData {
   txns: Txn[]
   categories: Category[]
   maint: MaintItem[]
+  stats: PlatformStat[]
   settings: Settings
   onboarded: boolean
   isDemo: boolean

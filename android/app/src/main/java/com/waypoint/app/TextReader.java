@@ -19,7 +19,8 @@ import java.util.concurrent.Executor;
 final class TextReader {
 
     interface Callback {
-        void onLines(List<OcrLine> lines);
+        /** `words` are the individual words of the same text, for layouts where one line spans several columns. */
+        void onText(List<OcrLine> lines, List<OcrLine> words);
 
         void onError(Exception e);
     }
@@ -38,13 +39,27 @@ final class TextReader {
         try {
             Task<Text> task = client().process(InputImage.fromBitmap(bitmap, 0));
             if (executor != null) {
-                task.addOnSuccessListener(executor, text -> cb.onLines(lines(text))).addOnFailureListener(executor, cb::onError);
+                task.addOnSuccessListener(executor, text -> cb.onText(lines(text), words(text))).addOnFailureListener(executor, cb::onError);
             } else {
-                task.addOnSuccessListener(text -> cb.onLines(lines(text))).addOnFailureListener(cb::onError);
+                task.addOnSuccessListener(text -> cb.onText(lines(text), words(text))).addOnFailureListener(cb::onError);
             }
         } catch (Exception e) {
             cb.onError(e);
         }
+    }
+
+    private static List<OcrLine> words(Text text) {
+        List<OcrLine> out = new ArrayList<>();
+        for (Text.TextBlock block : text.getTextBlocks()) {
+            for (Text.Line line : block.getLines()) {
+                for (Text.Element word : line.getElements()) {
+                    Rect r = word.getBoundingBox();
+                    if (r == null) continue;
+                    out.add(new OcrLine(word.getText(), r.left, r.top, r.right, r.bottom));
+                }
+            }
+        }
+        return out;
     }
 
     private static List<OcrLine> lines(Text text) {

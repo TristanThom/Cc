@@ -46,6 +46,8 @@ interface OfferCapturePlugin {
   clearOffers(): Promise<void>
   /** On-device text recognition of a user-picked image (base64, no data: prefix). */
   recognizeImage(o: { base64: string }): Promise<OcrResult>
+  /** Appends one JSON line to the capture log, for sending screens the app could not read. */
+  logNote(o: { json: string }): Promise<void>
 }
 
 export const OfferCapture = registerPlugin<OfferCapturePlugin>('OfferCapture')

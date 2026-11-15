@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { defaultMaint, demoData, emptyData, uid } from './defaults'
 import { activeShiftOf, adjustBreaks, chainFloor, currentOdo, defaultRate, fmtDate, fmtTime, KM_PER_MI, shiftBounds } from './engine'
-import type { AppData, Category, MaintItem, Platform, Shift, ThemeMode, Txn, TxnType, Unit, Vehicle } from './types'
+import type { AppData, Category, MaintItem, Platform, PlatformStat, Shift, ThemeMode, Txn, TxnType, Unit, Vehicle } from './types'
 
 /* ----------------------------- toasts ----------------------------- */
 
@@ -73,6 +73,11 @@ export interface Actions {
   // money
   saveTxn: (t: Omit<Txn, 'id'> & { id?: string }) => void
   deleteTxn: (id: string) => void
+  /** Applies a screenshot import: income entries and app stats, replacing earlier imports of the same period. */
+  saveImport: (txns: (Omit<Txn, 'id'> & { importKey: string })[], stats: Omit<PlatformStat, 'id' | 'updatedAt'>[], dropKeys: string[]) => void
+  deleteStat: (id: string) => void
+  setSplitTips: (on: boolean) => void
+  setImportHints: (on: boolean) => void
   addCategory: (type: TxnType, name: string, color: string) => Result
   toggleCategory: (id: string) => void
   removeCategory: (id: string) => void
@@ -122,6 +127,7 @@ export const useStore = create<AppData & Actions>()(
             shifts: s.shifts.filter((x) => x.vehicleId !== id),
             txns: s.txns.filter((x) => x.vehicleId !== id),
             maint: s.maint.filter((x) => x.vehicleId !== id),
+            stats: (s.stats ?? []).filter((x) => x.vehicleId !== id),
           }
         }),
       selectVehicle: (id) => set({ activeVehicleId: id }),
@@ -220,6 +226,24 @@ export const useStore = create<AppData & Actions>()(
           txns: t.id ? s.txns.map((x) => (x.id === t.id ? { ...t, id: x.id } : x)) : [...s.txns, { ...t, id: uid() }],
         })),
       deleteTxn: (id) => set((s) => ({ txns: s.txns.filter((x) => x.id !== id) })),
+      saveImport: (txns, stats, dropKeys) =>
+        set((s) => {
+          const keys = new Set([...txns.map((t) => t.importKey), ...dropKeys])
+          const kept = s.txns.filter((t) => !t.importKey || !keys.has(t.importKey))
+          const now = Date.now()
+          const merged = [...(s.stats ?? [])]
+          for (const st of stats) {
+            const i = merged.findIndex((x) => x.vehicleId === st.vehicleId && x.app === st.app && x.period === st.period && x.date === st.date)
+            // New values overwrite old ones; fields this import did not see are kept.
+            const clean = Object.fromEntries(Object.entries(st).filter(([, v]) => v !== undefined)) as typeof st
+            if (i >= 0) merged[i] = { ...merged[i], ...clean, updatedAt: now }
+            else merged.push({ ...clean, id: uid(), updatedAt: now })
+          }
+          return { isDemo: false, txns: [...kept, ...txns.map((t) => ({ ...t, id: uid() }))], stats: merged }
+        }),
+      deleteStat: (id) => set((s) => ({ stats: (s.stats ?? []).filter((x) => x.id !== id) })),
+      setSplitTips: (on) => set((s) => ({ settings: { ...s.settings, splitTips: on } })),
+      setImportHints: (on) => set((s) => ({ settings: { ...s.settings, importHints: on } })),
       addCategory: (type, name, color) => {
         name = name.trim()
         if (!name) return 'Enter a name.'
@@ -274,6 +298,7 @@ export const useStore = create<AppData & Actions>()(
           shifts: d.shifts.filter((s) => s && ids.has(s.vehicleId) && Number.isFinite(s.startOdo) && Number.isFinite(s.startTs)),
           txns: arr(d.txns, []).filter((t) => t && ids.has(t.vehicleId) && Number.isFinite(t.amount)),
           maint: arr(d.maint, []).filter((m) => m && ids.has(m.vehicleId)),
+          stats: arr(d.stats, []).filter((x) => x && ids.has(x.vehicleId) && typeof x.date === 'string'),
           platforms: arr(d.platforms, base.platforms),
           categories: arr(d.categories, base.categories),
           settings: { ...base.settings, ...(d.settings ?? {}) },
@@ -294,8 +319,8 @@ export const useStore = create<AppData & Actions>()(
 /** Plain serialisable snapshot of the persisted data (no actions). */
 export function snapshot(): AppData {
   const s = useStore.getState()
-  const { vehicles, activeVehicleId, shifts, platforms, txns, categories, maint, settings, onboarded, isDemo } = s
-  return { vehicles, activeVehicleId, shifts, platforms, txns, categories, maint, settings, onboarded, isDemo }
+  const { vehicles, activeVehicleId, shifts, platforms, txns, categories, maint, stats, settings, onboarded, isDemo } = s
+  return { vehicles, activeVehicleId, shifts, platforms, txns, categories, maint, stats: stats ?? [], settings, onboarded, isDemo }
 }
 
 export const useVehicle = (): Vehicle | undefined =>

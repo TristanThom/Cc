@@ -459,7 +459,7 @@ public class OfferCaptureService extends AccessibilityService {
                         final Bitmap image = scaleToWidth(bmp, OCR_MAX_WIDTH);
                         TextReader.read(image, workerExecutor, new TextReader.Callback() {
                             @Override
-                            public void onLines(List<OcrLine> lines) {
+                            public void onText(List<OcrLine> lines, List<OcrLine> words) {
                                 try {
                                     onUberText(now, lines, image);
                                 } catch (Exception ex) {
