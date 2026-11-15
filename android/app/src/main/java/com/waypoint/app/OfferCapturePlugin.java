@@ -2,8 +2,11 @@ package com.waypoint.app;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.provider.Settings;
+import android.util.Base64;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -14,6 +17,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -119,6 +123,67 @@ public class OfferCapturePlugin extends Plugin {
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
         }
         out.closeEntry();
+    }
+
+    /**
+     * Recognises the text in an image the user picked (an earnings screenshot), on the phone.
+     * Takes `base64` image data; resolves with the image size and each text line's position.
+     */
+    @PluginMethod
+    public void recognizeImage(final PluginCall call) {
+        String b64 = call.getString("base64");
+        if (b64 == null || b64.isEmpty()) {
+            call.reject("No image");
+            return;
+        }
+        final Bitmap bitmap;
+        try {
+            byte[] bytes = Base64.decode(b64, Base64.DEFAULT);
+            Bitmap decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            if (decoded == null) {
+                call.reject("That file is not an image");
+                return;
+            }
+            // Very large screenshots are scaled down; text stays readable and it runs faster.
+            int longest = Math.max(decoded.getWidth(), decoded.getHeight());
+            if (longest > 2400) {
+                float k = 2400f / longest;
+                bitmap = Bitmap.createScaledBitmap(decoded, Math.round(decoded.getWidth() * k), Math.round(decoded.getHeight() * k), true);
+                if (bitmap != decoded) decoded.recycle();
+            } else {
+                bitmap = decoded;
+            }
+        } catch (Exception | OutOfMemoryError ex) {
+            call.reject("Could not open that image");
+            return;
+        }
+        TextReader.read(bitmap, null, new TextReader.Callback() {
+            @Override
+            public void onLines(List<OcrLine> lines) {
+                JSArray arr = new JSArray();
+                for (OcrLine l : lines) {
+                    JSObject o = new JSObject();
+                    o.put("text", l.text);
+                    o.put("x", l.left);
+                    o.put("y", l.top);
+                    o.put("w", l.right - l.left);
+                    o.put("h", l.height());
+                    arr.put(o);
+                }
+                JSObject r = new JSObject();
+                r.put("width", bitmap.getWidth());
+                r.put("height", bitmap.getHeight());
+                r.put("lines", arr);
+                bitmap.recycle();
+                call.resolve(r);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                bitmap.recycle();
+                call.reject("Text recognition failed: " + e.getMessage(), e);
+            }
+        });
     }
 
     /** The stored ride offers, oldest first. */

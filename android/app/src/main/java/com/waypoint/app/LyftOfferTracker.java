@@ -10,7 +10,8 @@ import java.util.regex.Pattern;
  *
  * An offer card is recognised by its reject button. Its outcome comes from what Lyft shows
  * next: "Ride added to queue" or the pickup screen (accepted), "You declined the ride"
- * (declined), or nothing within the resolve window (missed: timed out or taken away).
+ * (declined), or nothing within the resolve window (also declined: a timeout or an offer taken
+ * away is, for the driver, the same as not taking it).
  *
  * Pure Java so it can be unit-tested off-device.
  */
@@ -56,7 +57,7 @@ final class LyftOfferTracker {
             if (open != null && open.key.equals(seen.key)) {
                 open.lastSeen = now;
             } else {
-                if (open != null) done.add(finish(open, Offer.MISSED, now));
+                if (open != null) done.add(finish(open, Offer.DECLINED, now));
                 open = seen;
             }
             return done;
@@ -67,7 +68,7 @@ final class LyftOfferTracker {
                 done.add(finish(open, outcome, now));
                 open = null;
             } else if (now - open.lastSeen > RESOLVE_WINDOW_MS) {
-                done.add(finish(open, Offer.MISSED, now));
+                done.add(finish(open, Offer.DECLINED, now));
                 open = null;
             }
         }
@@ -78,7 +79,7 @@ final class LyftOfferTracker {
     List<Offer> tick(long now) {
         List<Offer> done = new ArrayList<>();
         if (open != null && now - open.lastSeen > RESOLVE_WINDOW_MS) {
-            done.add(finish(open, Offer.MISSED, now));
+            done.add(finish(open, Offer.DECLINED, now));
             open = null;
             cardVisible = false;
         }

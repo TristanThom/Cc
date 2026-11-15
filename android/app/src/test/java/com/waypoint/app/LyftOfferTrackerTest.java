@@ -113,7 +113,7 @@ public class LyftOfferTrackerTest {
 
         t.onScreen(10_000, card("$9.00", false, "4 min • 0.6 mi"));
         assertTrue(t.onScreen(20_000, screen("Go Online")).isEmpty());
-        assertEquals(Offer.MISSED, t.tick(10_000 + LyftOfferTracker.RESOLVE_WINDOW_MS + 1).get(0).outcome);
+        assertEquals(Offer.DECLINED, t.tick(10_000 + LyftOfferTracker.RESOLVE_WINDOW_MS + 1).get(0).outcome);
     }
 
     @Test
@@ -137,6 +137,6 @@ public class LyftOfferTrackerTest {
         List<Offer> done = t.onScreen(9000, card("$11.00", false, "4 min • 0.6 mi"));
         assertEquals(1, done.size());
         assertEquals(8.25, done.get(0).fare, 1e-9);
-        assertEquals(Offer.MISSED, done.get(0).outcome);
+        assertEquals(Offer.DECLINED, done.get(0).outcome);
     }
 }

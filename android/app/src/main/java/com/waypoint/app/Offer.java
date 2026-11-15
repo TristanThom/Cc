@@ -8,7 +8,6 @@ final class Offer {
 
     static final String ACCEPTED = "accepted";
     static final String DECLINED = "declined";
-    static final String MISSED = "missed";
 
     String id = "";
     String app = "";
