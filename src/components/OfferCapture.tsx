@@ -52,8 +52,8 @@ export default function OfferCaptureCard() {
         <Radar size={20} strokeWidth={2.5} /> Offer tracking <span className="rounded-full bg-amber px-2 text-brand py-0.5 text-[10px] uppercase tracking-wide">Beta</span>
       </h2>
       <p className="text-sm font-semibold text-ink-2">
-        Logs each Lyft ride offer and whether you took it (see History → Offers). It also records what the Uber and Lyft driver apps show, with a screenshot when an offer appears, so Uber offers can be added.
-        Other apps are ignored and nothing is sent anywhere. Uber and Lyft say tools like this break their terms; use it at your own risk.
+        Logs each Lyft and Uber ride offer and whether you took it (see History → Offers). Lyft offers are read from the app's text; Uber hides its offer card, so Waypoint takes a picture of Uber's own window and
+        reads it on this phone. Other apps are never read or photographed, and nothing is sent anywhere. Uber and Lyft say tools like this break their terms; use it at your own risk.
       </p>
 
       <div className={cx('rounded-xl border-2 px-3 py-2 text-sm font-extrabold', recording ? 'border-go-dark bg-go-soft text-go-text' : 'border-ink bg-bg-2')} role="status">

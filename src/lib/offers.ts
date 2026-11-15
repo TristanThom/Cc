@@ -1,7 +1,8 @@
 import { registerPlugin } from '@capacitor/core'
+import type { OcrResult } from './earnings'
 import { isNative } from './native'
 
-export type OfferOutcome = 'accepted' | 'declined' | 'missed'
+export type OfferOutcome = 'accepted' | 'declined'
 
 /** One ride offer logged by the Android offer-tracking service. Distances are miles, as shown by the driver app. */
 export interface Offer {
@@ -43,6 +44,8 @@ interface OfferCapturePlugin {
   clear(): Promise<CaptureStatus>
   offers(): Promise<{ offers: Offer[] }>
   clearOffers(): Promise<void>
+  /** On-device text recognition of a user-picked image (base64, no data: prefix). */
+  recognizeImage(o: { base64: string }): Promise<OcrResult>
 }
 
 export const OfferCapture = registerPlugin<OfferCapturePlugin>('OfferCapture')
@@ -55,7 +58,11 @@ export async function loadOffers(): Promise<Offer[]> {
     return test ? [...test].sort((a, b) => b.t - a.t) : []
   }
   const { offers } = await OfferCapture.offers()
-  return offers.filter((o) => o && Number.isFinite(o.t) && Number.isFinite(o.fare)).sort((a, b) => b.t - a.t)
+  return offers
+    .filter((o) => o && Number.isFinite(o.t) && Number.isFinite(o.fare))
+    // Older builds stored a separate "missed" outcome; a timeout is a decline.
+    .map((o) => ({ ...o, outcome: (o.outcome === 'accepted' ? 'accepted' : 'declined') as OfferOutcome, tags: o.tags ?? [] }))
+    .sort((a, b) => b.t - a.t)
 }
 
 export const offerMiles = (o: Offer) => o.pickupMi + o.tripMi
@@ -67,17 +74,15 @@ export interface OfferStats {
   total: number
   accepted: number
   declined: number
-  missed: number
-  /** accepted / (accepted + declined + missed), 0..100 */
+  /** accepted / all offers, 0..100 */
   acceptRate: number
 }
 
 export function offerStats(offers: Offer[]): OfferStats {
-  const s = { total: offers.length, accepted: 0, declined: 0, missed: 0, acceptRate: 0 }
+  const s = { total: offers.length, accepted: 0, declined: 0, acceptRate: 0 }
   for (const o of offers) {
     if (o.outcome === 'accepted') s.accepted++
-    else if (o.outcome === 'declined') s.declined++
-    else s.missed++
+    else s.declined++
   }
   s.acceptRate = s.total ? (s.accepted / s.total) * 100 : 0
   return s

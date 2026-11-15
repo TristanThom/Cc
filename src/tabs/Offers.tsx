@@ -1,4 +1,4 @@
-import { ArrowDown, Check, Clock, X } from 'lucide-react'
+import { ArrowDown, Check, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Btn, Card, cx, Pill, Segmented } from '../components/ui'
 import { fmtDate, fmtTime, money } from '../lib/engine'
@@ -11,7 +11,6 @@ type Filter = 'all' | OfferOutcome
 const OUTCOME: Record<OfferOutcome, { label: string; chip: string; Icon: typeof Check }> = {
   accepted: { label: 'Accepted', chip: 'bg-go-dark text-white', Icon: Check },
   declined: { label: 'Declined', chip: 'bg-stop text-white', Icon: X },
-  missed: { label: 'Missed', chip: 'bg-bg-2 text-ink', Icon: Clock },
 }
 const APP_NAME = { lyft: 'Lyft', uber: 'Uber' } as const
 const mi = (n: number) => (n > 0 && n < 0.1 ? '<0.1' : n.toFixed(1))
@@ -44,9 +43,9 @@ export default function Offers() {
       <Card className="space-y-2 p-6 text-center text-sm font-bold text-ink-2">
         <p className="text-base font-black text-ink">No ride offers logged yet</p>
         {isNative ? (
-          <p>Turn on offer tracking in Settings, then drive as normal. Each Lyft offer appears here with its fare, distances and whether you took it. Uber offers aren't logged yet.</p>
+          <p>Turn on offer tracking in Settings, then drive as normal. Each Lyft and Uber offer appears here with its fare, distances and whether you took it.</p>
         ) : (
-          <p>Offer tracking runs in the Waypoint Android app, where it reads ride offers from the Lyft driver app.</p>
+          <p>Offer tracking runs in the Waypoint Android app, where it reads ride offers from the Lyft and Uber driver apps.</p>
         )}
       </Card>
     )
@@ -59,13 +58,12 @@ export default function Offers() {
   return (
     <div className="space-y-4">
       <Card className="overflow-hidden">
-        <div className="grid grid-cols-4 divide-x-2 divide-ink text-center">
+        <div className="grid grid-cols-3 divide-x-2 divide-ink text-center">
           {(
             [
               ['Offers', String(stats.total), ''],
               ['Accepted', String(stats.accepted), 'text-go-text'],
               ['Declined', String(stats.declined), 'text-stop-text'],
-              ['Missed', String(stats.missed), ''],
             ] as const
           ).map(([label, value, tone]) => (
             <div key={label} className="px-1 py-3">
@@ -75,7 +73,7 @@ export default function Offers() {
           ))}
         </div>
         <p className="num border-t-2 border-ink px-4 py-2 text-xs font-bold text-ink-2">
-          Acceptance rate {stats.acceptRate.toFixed(0)}% · Lyft only for now · Missed = timed out or taken away
+          Acceptance rate {stats.acceptRate.toFixed(0)}% · an offer that timed out counts as declined
         </p>
       </Card>
 
@@ -87,7 +85,6 @@ export default function Offers() {
           { value: 'all', label: 'All' },
           { value: 'accepted', label: 'Accepted' },
           { value: 'declined', label: 'Declined' },
-          { value: 'missed', label: 'Missed' },
         ]}
       />
 
@@ -95,7 +92,7 @@ export default function Offers() {
 
       <ol className="space-y-3">
         {list.slice(0, shown).map((o) => {
-          const out = OUTCOME[o.outcome] ?? OUTCOME.missed
+          const out = OUTCOME[o.outcome] ?? OUTCOME.declined
           const pm = perMile(o)
           return (
             <li key={o.id}>

@@ -1,6 +1,7 @@
 import { CalendarDays, ChevronDown, Eye, EyeOff, Plus, Settings2, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Keypad, Pill, Segmented, Sheet, Swatches } from '../components/ui'
+import EarningsImport from '../components/EarningsImport'
 import { SWATCHES } from '../lib/defaults'
 import { buildLedger, inPeriod, listPeriods, mileTotals, money, moneyTotals, num, periodFor, relDate, signedMoney, toLocalInput, type Period, type PeriodMode } from '../lib/engine'
 import { toast, useNow, useStore, useVehicle } from '../lib/store'
@@ -69,6 +70,7 @@ export default function Income() {
       <Btn tone="amber" big className="w-full" onClick={() => setEditing('new')}>
         <Plus size={24} strokeWidth={3.5} /> Add Transaction
       </Btn>
+      <EarningsImport vehicleId={v.id} />
 
       <Card>
         <div className="flex items-center justify-between gap-3 p-3">
