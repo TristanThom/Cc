@@ -52,6 +52,10 @@ export interface Txn {
   note: string
   /** Set on entries created by a screenshot import, so importing the same period again updates them. */
   importKey?: string
+  /** Fuel bought, in gallons, when a receipt showed it. */
+  gallons?: number
+  /** File name of the receipt photo kept on the phone. */
+  receipt?: string
 }
 
 /**
@@ -105,7 +109,27 @@ export interface Settings {
   splitTips?: boolean
   /** The import review points out what the screenshots did not include. Off once the driver hides it. */
   importHints?: boolean
+  /** Keep a copy of imported screenshots and receipts so the readings can be checked. */
+  keepImports?: boolean
+  /** How fuel counts as a business cost. Default 'ratio'. */
+  fuelSplit?: FuelSplit
+  /** The driver's last share-card choices. */
+  card?: CardPrefs
 }
+
+export interface CardPrefs {
+  keys: string[]
+  hideDollars: boolean
+  tall: boolean
+  dark: boolean
+}
+
+/**
+ * ratio: fuel is shared between business and personal use by the miles driven in the period.
+ * business: all fuel counts as a business cost.
+ * none: fuel is tracked but left out of business costs.
+ */
+export type FuelSplit = 'ratio' | 'business' | 'none'
 
 export interface AppData {
   vehicles: Vehicle[]

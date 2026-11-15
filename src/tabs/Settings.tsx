@@ -1,8 +1,9 @@
 import { Car, Check, DatabaseBackup, Download, FlaskConical, ImageUp, Moon, Pencil, Plus, Smartphone, Trash2, Upload } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Segmented, Sheet } from '../components/ui'
 import { currentOdo, defaultRate, fmtRate, num } from '../lib/engine'
 import { isNative, saveFile } from '../lib/native'
+import { OfferCapture } from '../lib/offers'
 import { snapshot, toast, useStore } from '../lib/store'
 import type { Vehicle } from '../lib/types'
 import { useInstall } from '../lib/pwa'
@@ -13,7 +14,7 @@ export default function Settings() {
   const activeId = useStore((s) => s.activeVehicleId)
   const shifts = useStore((s) => s.shifts)
   const settings = useStore((s) => s.settings)
-  const { selectVehicle, deleteVehicle, setRate, setUnit, setTheme, setSplitTips, setImportHints, loadDemo, clearAll, restore } = useStore.getState()
+  const { selectVehicle, deleteVehicle, setRate, setUnit, setTheme, setSplitTips, setImportHints, setKeepImports, loadDemo, clearAll, restore } = useStore.getState()
   const [form, setForm] = useState<{ v: Vehicle | null; key: number }>({ v: null, key: 0 })
   const [formOpen, setFormOpen] = useState(false)
   const [del, setDel] = useState<Vehicle | null>(null)
@@ -111,6 +112,7 @@ export default function Settings() {
             </span>
             <input type="checkbox" className="size-7 shrink-0 accent-[#15803D]" checked={settings.importHints ?? true} onChange={(e) => setImportHints(e.target.checked)} />
           </label>
+          {isNative && <ImportCheck keep={settings.keepImports ?? false} setKeep={setKeepImports} />}
         </Card>
 
         <Card className="space-y-4 p-4">
@@ -223,6 +225,43 @@ export default function Settings() {
           toast(e ?? 'Backup restored', e ? 'err' : 'ok')
         }}
       />
+    </div>
+  )
+}
+
+/** "Keep for checking": stores imported pictures with what was read, and exports them for review. */
+function ImportCheck({ keep, setKeep }: { keep: boolean; setKeep: (on: boolean) => void }) {
+  const [count, setCount] = useState<number | null>(null)
+  const refresh = () => OfferCapture.checkStatus().then((r) => setCount(r.images)).catch(() => setCount(null))
+  useEffect(() => {
+    void refresh()
+  }, [keep])
+  const share = async () => {
+    try {
+      const { uri } = await OfferCapture.exportCheck()
+      const { Share } = await import('@capacitor/share')
+      await Share.share({ title: 'Waypoint import check', files: [uri] })
+    } catch (e) {
+      if (e instanceof Error && /nothing kept|export failed/i.test(e.message)) toast(e.message, 'err')
+    }
+  }
+  return (
+    <div className="space-y-2 border-t-2 border-dashed border-line pt-2">
+      <label className="flex min-h-12 items-center justify-between gap-3 text-sm font-extrabold">
+        <span>
+          Keep imported pictures for checking
+          <span className="block text-xs font-semibold text-ink-2">Saves a copy of each screenshot and receipt with what Waypoint read from it, so the reading can be verified. The latest 50, for up to 30 days.</span>
+        </span>
+        <input type="checkbox" className="size-7 shrink-0 accent-[#15803D]" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <Btn tone="ink" disabled={!count} onClick={share}>
+          Export check{count ? ` (${count})` : ''}
+        </Btn>
+        <Btn tone="danger" disabled={!count} onClick={() => OfferCapture.clearCheck().then(refresh)}>
+          Delete kept
+        </Btn>
+      </div>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { mergeGroups, parseEarnings, resolveDate, type EarningsGroup, type Earni
 import { fmtDuration, money, weekEnd, weekStart } from '../lib/engine'
 import { toDateKey, weekKey } from '../lib/hours'
 import { isNative } from '../lib/native'
+import { keepForCheck, readPicture } from '../lib/ocr'
 import { OfferCapture } from '../lib/offers'
 import { toast, useStore } from '../lib/store'
 import type { Category, PlatformStat, Txn } from '../lib/types'
@@ -29,21 +30,6 @@ const DAY = 86_400_000
 const noon = (key: string) => {
   const [y, m, d] = key.split('-').map(Number)
   return new Date(y, m - 1, d, 12).getTime()
-}
-
-async function fileToBase64(file: File): Promise<string> {
-  const buf = new Uint8Array(await file.arrayBuffer())
-  let bin = ''
-  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000))
-  return btoa(bin)
-}
-
-async function recognise(file: File, index: number): Promise<OcrResult> {
-  if (isNative) return OfferCapture.recognizeImage({ base64: await fileToBase64(file) })
-  // Lets the browser test suite exercise the import flow; real recognition runs in the Android app.
-  const test = (window as { __WAYPOINT_TEST_OCR?: OcrResult | OcrResult[] }).__WAYPOINT_TEST_OCR
-  if (test) return Array.isArray(test) ? test[index % test.length] : test
-  throw new Error('Screenshot import reads the image on your phone, so it only works in the Waypoint Android app.')
 }
 
 const statChips = (s: EarningsStats): string[] =>
@@ -146,9 +132,11 @@ export default function EarningsImport({ vehicleId }: { vehicleId: string }) {
     try {
       for (let i = 0; i < files.length; i++) {
         setBusy(files.length > 1 ? `Reading ${i + 1} of ${files.length}…` : 'Reading screenshot…')
-        const ocr = await recognise(files[i], i)
+        const { ocr, base64 } = await readPicture(files[i], i, '__WAYPOINT_TEST_OCR')
         raw.current.push(ocr)
-        found.push(...parseEarnings(ocr))
+        const groups = parseEarnings(ocr)
+        found.push(...groups)
+        void keepForCheck(base64, 'earnings', ocr, groups)
       }
     } catch (e) {
       setBusy('')
@@ -199,7 +187,7 @@ export default function EarningsImport({ vehicleId }: { vehicleId: string }) {
     <>
       <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => (onFiles(e.target.files), (e.target.value = ''))} />
       <Btn className="w-full" disabled={!!busy} onClick={() => fileRef.current?.click()}>
-        <ImageUp size={20} strokeWidth={2.5} /> {busy || 'Import from screenshots'}
+        <ImageUp size={20} strokeWidth={2.5} /> {busy || 'Import earnings'}
       </Btn>
 
       <Sheet

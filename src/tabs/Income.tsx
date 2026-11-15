@@ -2,8 +2,14 @@ import { CalendarDays, ChevronDown, Eye, EyeOff, Plus, Settings2, Trash2 } from 
 import { useEffect, useMemo, useState } from 'react'
 import { Btn, Card, Confirm, cx, ErrorText, Field, inputCls, Keypad, Pill, Segmented, Sheet, Swatches } from '../components/ui'
 import EarningsImport from '../components/EarningsImport'
+import FuelCard from '../components/FuelCard'
 import HoursCard from '../components/HoursCard'
+import ReceiptImport from '../components/ReceiptImport'
+import ShareCard from '../components/ShareCard'
 import { SWATCHES } from '../lib/defaults'
+import { isNative } from '../lib/native'
+import { OfferCapture } from '../lib/offers'
+import { fuelSummary } from '../lib/receipt'
 import { buildLedger, inPeriod, listPeriods, mileTotals, money, moneyTotals, num, periodFor, relDate, signedMoney, toLocalInput, type Period, type PeriodMode } from '../lib/engine'
 import { toast, useNow, useStore, useVehicle } from '../lib/store'
 import type { Txn, TxnType, Vehicle } from '../lib/types'
@@ -14,6 +20,7 @@ export default function Income() {
   const shifts = useStore((s) => s.shifts)
   const categories = useStore((s) => s.categories)
   const { rate } = useStore((s) => s.settings)
+  const fuelSplit = useStore((s) => s.settings.fuelSplit ?? 'ratio')
   const now = useNow(30_000)
   const [mode, setMode] = useState<PeriodMode>('week')
   const [anchor, setAnchor] = useState<number | null>(null) // null = follow "now"
@@ -28,8 +35,13 @@ export default function Income() {
   if (!v) return null
   const period = periodFor(mode, anchor ?? now)
   const isCurrent = inPeriod(now, period)
-  const totals = moneyTotals(txns, v.id, period)
-  const businessMiles = mileTotals(ledger, period, now).business
+  const miles = mileTotals(ledger, period, now)
+  const businessMiles = miles.business
+  // Fuel counts toward expenses by the driver's chosen rule (by miles, all, or not at all).
+  const fuel = fuelSummary(txns, v.id, period, miles.business, miles.personal, fuelSplit)
+  const raw = moneyTotals(txns, v.id, period)
+  const expense = raw.expense - fuel.total + fuel.business
+  const totals = { income: raw.income, expense, net: raw.income - expense }
   const shield = businessMiles * rate
   const list = txns.filter((t) => t.vehicleId === v.id && inPeriod(t.ts, period)).sort((a, b) => b.ts - a.ts)
   const colorOf = (t: Txn) => categories.find((c) => c.type === t.type && c.name === t.category)?.color ?? (t.type === 'income' ? '#15803D' : '#B91C1C')
@@ -60,6 +72,7 @@ export default function Income() {
           <div className="px-1 py-3">
             <div className="text-[11px] font-extrabold uppercase tracking-wide text-ink-2">Expenses</div>
             <div className="num mt-1 text-[clamp(.95rem,4.4vw,1.4rem)] font-black text-stop-text">-{money(totals.expense)}</div>
+            {fuel.total - fuel.business > 0.004 && <div className="num mt-0.5 text-[10px] font-bold tracking-tight text-ink-2">excl. {money(fuel.total - fuel.business)} fuel</div>}
           </div>
           <div className="bg-go-soft px-1 py-3">
             <div className="text-[11px] font-extrabold uppercase tracking-wide text-ink-2">Net Profit</div>
@@ -72,9 +85,15 @@ export default function Income() {
       <Btn tone="amber" big className="w-full" onClick={() => setEditing('new')}>
         <Plus size={24} strokeWidth={3.5} /> Add Transaction
       </Btn>
-      <EarningsImport vehicleId={v.id} />
+      <div className="grid grid-cols-2 gap-2">
+        <EarningsImport vehicleId={v.id} />
+        <ReceiptImport vehicleId={v.id} />
+      </div>
+
+      <ShareCard vehicle={v} />
 
       <HoursCard vehicleId={v.id} period={period} now={now} businessMiles={businessMiles} />
+      <FuelCard fuel={fuel} businessMiles={miles.business} personalMiles={miles.personal} />
 
       <Card>
         <div className="flex items-center justify-between gap-3 p-3">
@@ -292,6 +311,16 @@ function TxnSheet({ open, target, onClose, vehicleId, defaultTs }: { open: boole
   const [when, setWhen] = useState(toLocalInput(existing?.ts ?? defaultTs ?? Date.now()))
   const [manage, setManage] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [gallons, setGallons] = useState(existing?.gallons !== undefined ? String(existing.gallons) : '')
+  const [photo, setPhoto] = useState<string | null>(null)
+  const showReceipt = async () => {
+    if (!existing?.receipt) return
+    try {
+      setPhoto('data:image/jpeg;base64,' + (await OfferCapture.readImage({ name: existing.receipt, kind: 'receipt' })).base64)
+    } catch {
+      toast('That receipt photo is no longer on this phone.', 'err')
+    }
+  }
 
   const options = categories.filter((c) => c.type === type && (!c.hidden || c.name === existing?.category))
   useEffect(() => {
@@ -305,7 +334,9 @@ function TxnSheet({ open, target, onClose, vehicleId, defaultTs }: { open: boole
     if (!(n > 0)) return setErr('Enter an amount greater than $0.')
     if (!category) return setErr('Pick a category.')
     if (!Number.isFinite(ts)) return setErr('Pick a valid date.')
-    saveTxn({ id: existing?.id, vehicleId, type, category, amount: Math.round(n * 100) / 100, ts, note: note.trim() })
+    const g = Number(gallons)
+    if (type === 'expense' && gallons !== '' && !(g > 0 && g < 200)) return setErr('Gallons should be a number like 9.412, or left empty.')
+    saveTxn({ id: existing?.id, vehicleId, type, category, amount: Math.round(n * 100) / 100, ts, note: note.trim(), importKey: existing?.importKey, receipt: existing?.receipt, gallons: type === 'expense' && gallons !== '' ? g : undefined })
     toast(`${type === 'income' ? 'Income' : 'Expense'} saved`)
     onClose()
   }
@@ -328,6 +359,7 @@ function TxnSheet({ open, target, onClose, vehicleId, defaultTs }: { open: boole
                 aria-label="Delete transaction"
                 onClick={() => {
                   deleteTxn(existing.id)
+                  if (existing.receipt && isNative) void OfferCapture.deleteImage({ name: existing.receipt, kind: 'receipt' }).catch(() => {})
                   toast('Transaction deleted')
                   onClose()
                 }}
@@ -411,7 +443,17 @@ function TxnSheet({ open, target, onClose, vehicleId, defaultTs }: { open: boole
             <Field label="Note (optional)">
               <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Weekly payout" maxLength={80} />
             </Field>
+            {type === 'expense' && (
+              <Field label="Gallons (fuel only)">
+                <input className={cx(inputCls, 'num')} inputMode="decimal" value={gallons} placeholder="e.g. 9.412" onChange={(e) => (setGallons(e.target.value.replace(/[^\d.]/g, '').slice(0, 7)), setErr(null))} />
+              </Field>
+            )}
           </div>
+          {existing?.receipt && isNative && (
+            <div className="space-y-2">
+              {photo ? <img src={photo} alt="Receipt" className="w-full rounded-xl border-2 border-ink" /> : <Btn className="w-full" onClick={showReceipt}>View receipt photo</Btn>}
+            </div>
+          )}
         </>
       )}
     </Sheet>

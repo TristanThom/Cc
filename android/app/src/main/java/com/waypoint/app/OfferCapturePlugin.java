@@ -250,6 +250,176 @@ public class OfferCapturePlugin extends Plugin {
         return String.format("#%02x%02x%02x", (int) (r / n), (int) (g / n), (int) (b / n));
     }
 
+    /* ------------- pictures the driver chose to keep: receipts, and imports kept for checking ------------- */
+
+    private static final int MAX_CHECK_FILES = 100; // 50 imports: a picture and a note each
+    private static final long MAX_CHECK_AGE_MS = 30L * 24 * 3600 * 1000;
+
+    private File imageDir(String kind) {
+        File d = new File(getContext().getFilesDir(), "check".equals(kind) ? "import_check" : "receipts");
+        //noinspection ResultOfMethodCallIgnored
+        d.mkdirs();
+        return d;
+    }
+
+    /** A plain file name only, so a caller can never reach outside the folder. */
+    private static boolean safeName(String name) {
+        return name != null && name.matches("[A-Za-z0-9_-]{1,60}\\.(jpg|json)");
+    }
+
+    /** Saves a reduced JPEG copy of an image. `kind` is "receipt" or "check". Resolves with its file name. */
+    @PluginMethod
+    public void saveImage(PluginCall call) {
+        String b64 = call.getString("base64");
+        String kind = call.getString("kind", "receipt");
+        if (b64 == null || b64.isEmpty()) {
+            call.reject("No image");
+            return;
+        }
+        try {
+            byte[] bytes = Base64.decode(b64, Base64.DEFAULT);
+            Bitmap decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            if (decoded == null) {
+                call.reject("That file is not an image");
+                return;
+            }
+            int longest = Math.max(decoded.getWidth(), decoded.getHeight());
+            Bitmap bmp = decoded;
+            if (longest > 1400) {
+                float k = 1400f / longest;
+                bmp = Bitmap.createScaledBitmap(decoded, Math.round(decoded.getWidth() * k), Math.round(decoded.getHeight() * k), true);
+            }
+            String name = System.currentTimeMillis() + "-" + (int) (Math.random() * 9000 + 1000) + ".jpg";
+            try (FileOutputStream out = new FileOutputStream(new File(imageDir(kind), name))) {
+                bmp.compress(Bitmap.CompressFormat.JPEG, 70, out);
+            }
+            if (bmp != decoded) bmp.recycle();
+            decoded.recycle();
+            if ("check".equals(kind)) trimCheck();
+            JSObject r = new JSObject();
+            r.put("name", name);
+            call.resolve(r);
+        } catch (Exception | OutOfMemoryError ex) {
+            call.reject("Could not save that image");
+        }
+    }
+
+    @PluginMethod
+    public void readImage(PluginCall call) {
+        String name = call.getString("name");
+        if (!safeName(name)) {
+            call.reject("Bad name");
+            return;
+        }
+        File f = new File(imageDir(call.getString("kind", "receipt")), name);
+        if (!f.exists() || f.length() > 8_000_000) {
+            call.reject("That picture is no longer on this phone");
+            return;
+        }
+        try (FileInputStream in = new FileInputStream(f)) {
+            byte[] bytes = new byte[(int) f.length()];
+            int off = 0;
+            while (off < bytes.length) {
+                int n = in.read(bytes, off, bytes.length - off);
+                if (n < 0) break;
+                off += n;
+            }
+            JSObject r = new JSObject();
+            r.put("base64", Base64.encodeToString(bytes, Base64.NO_WRAP));
+            call.resolve(r);
+        } catch (Exception ex) {
+            call.reject("Could not open that picture");
+        }
+    }
+
+    @PluginMethod
+    public void deleteImage(PluginCall call) {
+        String name = call.getString("name");
+        if (safeName(name)) {
+            //noinspection ResultOfMethodCallIgnored
+            new File(imageDir(call.getString("kind", "receipt")), name).delete();
+        }
+        call.resolve();
+    }
+
+    /** Stores what the app read from a kept image, next to it, as <image name>.json. */
+    @PluginMethod
+    public void saveCheckNote(PluginCall call) {
+        String name = call.getString("name");
+        String json = call.getString("json");
+        if (!safeName(name) || json == null || json.length() > 400_000) {
+            call.reject("Bad note");
+            return;
+        }
+        try (FileOutputStream out = new FileOutputStream(new File(imageDir("check"), name.replace(".jpg", ".json")))) {
+            out.write(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            call.resolve();
+        } catch (Exception ex) {
+            call.reject("Could not save the note");
+        }
+    }
+
+    /** Keeps the newest imports only, and nothing older than 30 days. */
+    private void trimCheck() {
+        File[] files = imageDir("check").listFiles();
+        if (files == null) return;
+        java.util.Arrays.sort(files, (a, b) -> b.getName().compareTo(a.getName()));
+        long cutoff = System.currentTimeMillis() - MAX_CHECK_AGE_MS;
+        for (int i = 0; i < files.length; i++) {
+            if (i >= MAX_CHECK_FILES || files[i].lastModified() < cutoff) {
+                //noinspection ResultOfMethodCallIgnored
+                files[i].delete();
+            }
+        }
+    }
+
+    @PluginMethod
+    public void checkStatus(PluginCall call) {
+        File[] files = imageDir("check").listFiles();
+        int images = 0;
+        if (files != null) for (File f : files) if (f.getName().endsWith(".jpg")) images++;
+        JSObject r = new JSObject();
+        r.put("images", images);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void clearCheck(PluginCall call) {
+        File[] files = imageDir("check").listFiles();
+        if (files != null) {
+            for (File f : files) {
+                //noinspection ResultOfMethodCallIgnored
+                f.delete();
+            }
+        }
+        call.resolve();
+    }
+
+    /** Zips the kept imports (pictures and what was read from each) for sharing. */
+    @PluginMethod
+    public void exportCheck(final PluginCall call) {
+        final Context c = getContext();
+        new Thread(() -> {
+            try {
+                File[] files = imageDir("check").listFiles();
+                if (files == null || files.length == 0) {
+                    call.reject("Nothing kept yet");
+                    return;
+                }
+                File zip = new File(c.getCacheDir(), "waypoint-import-check.zip");
+                try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(zip))) {
+                    for (File f : files) add(out, f, f.getName());
+                }
+                JSObject r = new JSObject();
+                r.put("uri", Uri.fromFile(zip).toString());
+                r.put("bytes", zip.length());
+                call.resolve(r);
+            } catch (Exception ex) {
+                call.reject("Export failed: " + ex.getMessage(), ex);
+            }
+        }).start();
+    }
+
     /** The stored ride offers, oldest first. */
     @PluginMethod
     public void offers(PluginCall call) {

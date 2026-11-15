@@ -48,6 +48,14 @@ interface OfferCapturePlugin {
   recognizeImage(o: { base64: string }): Promise<OcrResult>
   /** Appends one JSON line to the capture log, for sending screens the app could not read. */
   logNote(o: { json: string }): Promise<void>
+  /** Keeps a reduced copy of a picture on the phone: a receipt, or an import kept for checking. */
+  saveImage(o: { base64: string; kind: 'receipt' | 'check' }): Promise<{ name: string }>
+  readImage(o: { name: string; kind: 'receipt' | 'check' }): Promise<{ base64: string }>
+  deleteImage(o: { name: string; kind: 'receipt' | 'check' }): Promise<void>
+  saveCheckNote(o: { name: string; json: string }): Promise<void>
+  checkStatus(): Promise<{ images: number }>
+  clearCheck(): Promise<void>
+  exportCheck(): Promise<{ uri: string; bytes: number }>
 }
 
 export const OfferCapture = registerPlugin<OfferCapturePlugin>('OfferCapture')

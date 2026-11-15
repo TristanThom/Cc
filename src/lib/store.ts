@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { defaultMaint, demoData, emptyData, uid } from './defaults'
 import { activeShiftOf, adjustBreaks, chainFloor, currentOdo, defaultRate, fmtDate, fmtTime, KM_PER_MI, shiftBounds } from './engine'
-import type { AppData, Category, MaintItem, Platform, PlatformStat, Shift, ThemeMode, Txn, TxnType, Unit, Vehicle } from './types'
+import type { AppData, CardPrefs, Category, FuelSplit, MaintItem, Platform, PlatformStat, Shift, ThemeMode, Txn, TxnType, Unit, Vehicle } from './types'
 
 /* ----------------------------- toasts ----------------------------- */
 
@@ -78,6 +78,9 @@ export interface Actions {
   deleteStat: (id: string) => void
   setSplitTips: (on: boolean) => void
   setImportHints: (on: boolean) => void
+  setKeepImports: (on: boolean) => void
+  setFuelSplit: (mode: FuelSplit) => void
+  setCardPrefs: (prefs: CardPrefs) => void
   addCategory: (type: TxnType, name: string, color: string) => Result
   toggleCategory: (id: string) => void
   removeCategory: (id: string) => void
@@ -244,6 +247,9 @@ export const useStore = create<AppData & Actions>()(
       deleteStat: (id) => set((s) => ({ stats: (s.stats ?? []).filter((x) => x.id !== id) })),
       setSplitTips: (on) => set((s) => ({ settings: { ...s.settings, splitTips: on } })),
       setImportHints: (on) => set((s) => ({ settings: { ...s.settings, importHints: on } })),
+      setKeepImports: (on) => set((s) => ({ settings: { ...s.settings, keepImports: on } })),
+      setFuelSplit: (mode) => set((s) => ({ settings: { ...s.settings, fuelSplit: mode } })),
+      setCardPrefs: (prefs) => set((s) => ({ settings: { ...s.settings, card: prefs } })),
       addCategory: (type, name, color) => {
         name = name.trim()
         if (!name) return 'Enter a name.'
