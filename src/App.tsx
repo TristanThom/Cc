@@ -7,6 +7,7 @@ import { currentOdo, maintState } from './lib/engine'
 import { closeTop, isNative } from './lib/native'
 import { useOnline } from './lib/pwa'
 import { useStore, useToast, useVehicle } from './lib/store'
+import { useShiftNotification } from './lib/shiftNotice'
 import { useSwipeNav } from './lib/swipe'
 import { useTheme } from './lib/theme'
 import Alerts from './tabs/Alerts'
@@ -31,6 +32,7 @@ export default function App() {
   const hasVehicle = useStore((s) => s.vehicles.length > 0)
   const online = useOnline()
   useTheme()
+  useShiftNotification()
   const [[tab, dir], setNav] = useState<[number, number]>([0, 0])
   const goTab = (i: number) => setNav(([cur]) => [i, i > cur ? 1 : -1])
   const alertCount = useAlertCount()

@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(OfferCapturePlugin.class);
+        registerPlugin(ShiftNotifierPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
